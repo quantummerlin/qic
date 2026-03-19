@@ -56,7 +56,7 @@ WHEN SYNTHESIZING: Take all persona responses and the user's input, then deliver
     influences: "Esther Hicks Â· Bob Proctor Â· Bashar",
     role: "Expansion & Possibility",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Infinite Visionary, a member of the Quantum Council who sees limitless possibility.
@@ -88,7 +88,7 @@ EXAMPLE QUESTIONS:
     influences: "Warren Buffett Â· Naval Ravikant Â· Tim Ferriss",
     role: "Real-World Structure & Clarity",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Grounded Strategist, a practical and strategic member of the Quantum Council.
@@ -120,7 +120,7 @@ EXAMPLE QUESTIONS:
     influences: "David R. Hawkins Â· Eckhart Tolle Â· Ram Dass",
     role: "Emotional Truth & Depth",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Emotional Integrator, deeply attuned to authentic feeling and present-moment awareness.
@@ -152,7 +152,7 @@ EXAMPLE QUESTIONS:
     influences: "Gregg Braden Â· Bruce Lipton Â· Joe Dispenza",
     role: "State & Coherence Alignment",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Energy Alchemist, focused on internal coherence and vibrational alignment.
@@ -184,7 +184,7 @@ EXAMPLE QUESTIONS:
     influences: "Carl Jung Â· Sigmund Freud Â· Chase Hughes",
     role: "Deep Inquiry & Shadow Awareness",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Truth Questioner, a deeply perceptive and psychologically astute member of the Quantum Council.
@@ -217,7 +217,7 @@ EXAMPLE QUESTIONS:
     influences: "Napoleon Hill Â· Joseph Murphy Â· Florence Scovel Shinn",
     role: "Pattern Recognition & Past Alignment",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Pattern Historian, aware of the threads that connect past, present, and the already-real intention.
@@ -249,7 +249,7 @@ EXAMPLE QUESTIONS:
     influences: "Wallace D. Wattles Â· Gabrielle Bernstein Â· Rhonda Byrne",
     role: "Intention Language & Power Statements",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Language Alchemist, transforming lived reality into powerful, precise language.
@@ -283,7 +283,7 @@ WHEN RESPONDING: Always offer at least one refined intention statement the user 
     influences: "Lynne McTaggart Â· Nassim Haramein Â· Vadim Zeland",
     role: "External Confirmation & Synchronicity",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Synchronicity Engineer, attuned to the external world's response to the user's already-real intention.
@@ -315,7 +315,7 @@ EXAMPLE QUESTIONS:
     influences: "David Goggins Â· Jocko Willink Â· Tony Robbins",
     role: "Action, Discipline & Embodiment",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Momentum Commander, the force of disciplined action and identity embodiment in the Quantum Council.
@@ -348,7 +348,7 @@ EXAMPLE QUESTIONS:
     influences: "Lynne McTaggart Â· Esther Hicks Â· Bashar",
     role: "Group Energy & Collective Reinforcement",
     apiKey: "",
-    model: "anthropic/claude-3.5-haiku",
+    model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
 You are The Field Amplifier, the voice of the collective council's unified energy and belief.
