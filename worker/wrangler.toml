@@ -1,0 +1,32 @@
+name = "quantum-council-proxy"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# ------------------------------------------------------------------
+# REQUIRED SECRETS — set each one with:
+#   npx wrangler secret put <SECRET_NAME>
+#
+# QUANTUM_AUTH_TOKEN  — a password you invent; entered once in the
+#                       app's Settings → Access Token field
+#
+# One key per persona (from your openrouter.ai/keys dashboard):
+#   KEY_ARCHITECT
+#   KEY_VISIONARY
+#   KEY_STRATEGIST
+#   KEY_EMOTIONAL
+#   KEY_ENERGY
+#   KEY_QUESTIONER
+#   KEY_HISTORIAN
+#   KEY_LANGUAGE
+#   KEY_CONNECTOR
+#   KEY_COMMANDER
+#   KEY_AMPLIFIER
+#   KEY_OBSERVER
+#
+# OPTIONAL — after Cloudflare Pages is live, lock CORS:
+#   KEY_ALLOWED_ORIGIN  → paste your Pages URL
+# ------------------------------------------------------------------
+
+# Uncomment and set after Pages deployment:
+# [vars]
+# ALLOWED_ORIGIN = "https://quantum-council.pages.dev"

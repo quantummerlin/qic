@@ -1,0 +1,10 @@
+{
+  "name": "Quantum Council",
+  "short_name": "QC",
+  "description": "Your personal AI council for intention and manifestation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#111111",
+  "orientation": "portrait-primary"
+}

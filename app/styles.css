@@ -1,0 +1,191 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: monospace; background: #0a0a0a; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
+
+/* Header */
+.header { padding: 12px 20px; background: #111; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 16px; color: #aaa; }
+.header .status { font-size: 12px; color: #555; }
+
+/* Settings Panel */
+.settings-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; overflow-y: auto; }
+.settings-overlay.active { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; }
+.settings-panel { background: #111; border: 1px solid #333; padding: 30px; width: 100%; max-width: 700px; border-radius: 4px; }
+.settings-panel h2 { margin-bottom: 20px; font-size: 14px; color: #aaa; }
+.settings-panel label { display: block; font-size: 12px; color: #777; margin-bottom: 4px; margin-top: 14px; }
+.settings-panel input, .settings-panel select, .settings-panel textarea { width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #333; color: #e0e0e0; font-family: monospace; font-size: 12px; border-radius: 2px; }
+.settings-panel textarea { height: 80px; resize: vertical; }
+.settings-panel .persona-block { border: 1px solid #222; padding: 14px; margin-bottom: 10px; background: #0d0d0d; border-radius: 2px; }
+.settings-panel .persona-block summary { cursor: pointer; font-size: 13px; color: #ccc; }
+.settings-panel button { margin-top: 20px; padding: 10px 20px; background: #222; color: #ccc; border: 1px solid #444; cursor: pointer; font-family: monospace; font-size: 12px; }
+.settings-panel button:hover { background: #333; }
+
+/* Intention Bar */
+.intention-bar { padding: 8px 20px; background: #0d0d0d; border-bottom: 1px solid #1a1a1a; font-size: 12px; color: #555; display: flex; align-items: center; gap: 10px; }
+.intention-bar span { color: #888; }
+.intention-bar .intention-text { color: #aaa; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.intention-bar button { background: none; border: 1px solid #333; color: #777; padding: 2px 8px; font-family: monospace; font-size: 11px; cursor: pointer; }
+
+/* Chat Area */
+.chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+
+.message { max-width: 85%; padding: 10px 14px; border-radius: 4px; font-size: 13px; line-height: 1.6; }
+.message.user { align-self: flex-end; background: #1a2a1a; border: 1px solid #2a3a2a; color: #c0d0c0; }
+.message.persona { align-self: flex-start; background: #111; border: 1px solid #222; }
+.message .persona-name { font-size: 11px; color: #666; margin-bottom: 4px; font-weight: bold; }
+.message .persona-name .model-tag { color: #444; font-weight: normal; margin-left: 6px; }
+.message.architect { border-left: 2px solid #666; }
+.message .content { white-space: pre-wrap; }
+
+/* Typing indicator */
+.typing-indicator { align-self: flex-start; padding: 8px 14px; font-size: 12px; color: #444; }
+
+/* Input Area */
+.input-area { padding: 14px 20px; background: #111; border-top: 1px solid #222; display: flex; gap: 10px; }
+.input-area textarea { flex: 1; padding: 10px; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; font-family: monospace; font-size: 13px; resize: none; height: 50px; border-radius: 2px; }
+.input-area textarea:focus { outline: none; border-color: #444; }
+.input-area button { padding: 10px 20px; background: #1a1a1a; border: 1px solid #333; color: #aaa; font-family: monospace; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.input-area button:hover { background: #222; }
+.input-area button:disabled { opacity: 0.3; cursor: not-allowed; }
+.input-area button.running { border-color: #555; color: #ccc; }
+
+/* Council running status */
+.council-status { padding: 6px 20px; background: #0d0d0d; border-top: 1px solid #1a1a1a; font-size: 11px; color: #444; text-align: center; display: none; }
+.council-status.active { display: block; }
+/* Journal entries */
+.journal-entry { padding: 12px; margin-bottom: 8px; background: #0d0d0d; border: 1px solid #222; border-radius: 2px; }
+.journal-entry.current { border-color: #3a4a3a; background: #0f150f; }
+.journal-date { font-size: 11px; color: #555; margin-bottom: 4px; }
+.journal-text { font-size: 13px; color: #aaa; line-height: 1.5; }
+.journal-entry.current .journal-date { color: #6a8a6a; }
+.journal-entry.current .journal-text { color: #ccc; }
+
+/* Lock This In button */
+.lock-in-btn { background: #1a2a1a; border: 1px solid #3a4a3a; color: #8a8; padding: 2px 8px; font-family: monospace; font-size: 10px; cursor: pointer; margin-left: auto; border-radius: 2px; font-weight: normal; }
+.lock-in-btn:hover { background: #2a3a2a; color: #aca; }
+
+/* Phase Indicator */
+.phase-indicator { padding: 6px 20px; background: #0f1a0f; border-bottom: 1px solid #1a2a1a; font-size: 11px; color: #6a8a6a; text-align: center; display: none; }
+.phase-indicator.active { display: block; }
+
+/* Session open messages */
+.message.session-open { border-left: 2px solid #668; background: #0f0f15; }
+
+/* Observer messages */
+.message.observer { border-left: 2px solid #886; background: #15150f; }
+
+/* Synthesis messages */
+.message.synthesis { border-left: 2px solid #9a9; background: #0f150f; }
+
+/* Council conversation messages */
+.message.council-convo { border-left: 2px solid #446; background: #0d0d18; }
+.message.council-convo-close { border-left: 2px solid #669; background: #0f0f1a; }
+
+/* Council meeting header */
+.council-meeting-header { text-align: center; padding: 10px 20px; margin: 10px 0; font-size: 11px; color: #446; border-top: 1px solid #1a1a2a; border-bottom: 1px solid #1a1a2a; background: #0a0a12; }
+.council-meeting-header span { letter-spacing: 0.05em; }
+
+/* Welcome message */
+.welcome-message { flex: 1; display: flex; align-items: center; justify-content: center; }
+
+/* Ambient whisper messages */
+.message.ambient { 
+  border-left: 2px solid #545; 
+  background: #0d0d0d; 
+  opacity: 0.85;
+}
+.ambient-tag {
+  font-size: 9px;
+  color: #665;
+  margin-left: 8px;
+  font-style: italic;
+}
+.message.ambient .persona-name {
+  color: #887;
+}
+
+/* Guidance message */
+.guidance-message {
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* System messages */
+.message.system {
+  background: #0a0a0a;
+  border-left: 2px solid #333;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+.message.system .content {
+  font-size: 12px;
+}
+
+/* Council return message */
+.council-return-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  margin: 10px 0;
+  background: linear-gradient(135deg, #0a0a18 0%, #0f0f1a 100%);
+  border: 1px solid #224;
+  border-radius: 8px;
+  animation: fadeIn 0.4s ease;
+}
+.council-return-message .return-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.council-return-message .return-text {
+  font-size: 13px;
+  color: #aab;
+  line-height: 1.6;
+}
+
+/* ----------------------------------------------------------------
+   Mobile responsive — phone-first layout
+   ---------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* Header: stack controls below title on small screens */
+  .header {
+    padding: 8px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .header h1 { font-size: 14px; }
+
+  /* Intention bar: smaller padding */
+  .intention-bar { padding: 6px 12px; font-size: 11px; }
+
+  /* Chat area: less padding, wider messages */
+  .chat-area { padding: 10px 10px; }
+  .message { max-width: 96%; font-size: 13px; }
+
+  /* Input area: textarea full width on its own row, buttons on next row */
+  .input-area {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .input-area textarea {
+    flex: 0 0 100%;
+    height: 44px;
+  }
+  .input-area button {
+    flex: 1 1 auto;
+    min-height: 44px;  /* WCAG touch target */
+    font-size: 11px;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  /* Settings panel: full-width, smaller padding */
+  .settings-overlay.active { padding: 12px 8px; }
+  .settings-panel { padding: 16px 12px; }
+}
