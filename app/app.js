@@ -108,8 +108,7 @@
       }
     });
 
-    // Settings
-    document.getElementById("settings-btn").addEventListener("click", openSettings);
+    // Settings (opened from bottom nav — wire up close/save buttons)
     document.getElementById("settings-close").addEventListener("click", closeSettings);
     document.getElementById("settings-save").addEventListener("click", saveSettings);
 
@@ -141,8 +140,7 @@
     // Fill all API keys
     document.getElementById("fill-all-btn").addEventListener("click", fillAllKeys);
 
-    // Intention journal
-    document.getElementById("intention-journal-btn").addEventListener("click", openIntentionJournal);
+    // Intention journal (opened from bottom nav — wire up close button)
     document.getElementById("journal-close").addEventListener("click", closeIntentionJournal);
 
     // Start session (Architect opens)
@@ -423,7 +421,7 @@
   // INTENTION JOURNAL
   // ----------------------------------------------------------
   function openIntentionJournal() {
-    const overlay = document.getElementById("journal-overlay");
+    const overlay = document.getElementById("journal-sheet");
     const container = document.getElementById("journal-entries");
     container.innerHTML = "";
 
@@ -450,7 +448,7 @@
   }
 
   function closeIntentionJournal() {
-    document.getElementById("journal-overlay").classList.remove("active");
+    document.getElementById("journal-sheet").classList.remove("active");
   }
 
   // ----------------------------------------------------------
@@ -693,7 +691,7 @@
   // SETTINGS
   // ----------------------------------------------------------
   function openSettings() {
-    const panel = document.getElementById("settings-overlay");
+    const panel = document.getElementById("settings-sheet");
     const container = document.getElementById("persona-settings-list");
     container.innerHTML = "";
 
@@ -736,7 +734,7 @@
   }
 
   function closeSettings() {
-    document.getElementById("settings-overlay").classList.remove("active");
+    document.getElementById("settings-sheet").classList.remove("active");
   }
 
   function saveSettings() {

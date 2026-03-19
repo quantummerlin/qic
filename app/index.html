@@ -1,51 +1,35 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Quantum Council</title>
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Quantum Council" />
+  <meta name="apple-mobile-web-app-title" content="QC" />
+  <meta name="theme-color" content="#000000" />
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div class="header">
-    <h1>ðŸ”® Quantum Council</h1>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select id="mode-select" style="background:#1a1a1a;border:1px solid #333;color:#aaa;font-family:monospace;font-size:11px;padding:4px 8px;">
-        <option value="council">Full Council (all 12)</option>
-        <optgroup label="1-on-1 Mode">
-          <option value="architect">ðŸ§  Reality Architect</option>
-          <option value="visionary">ðŸŒŒ Infinite Visionary</option>
-          <option value="strategist">ðŸ§± Grounded Strategist</option>
-          <option value="emotional">â¤ï¸ Emotional Integrator</option>
-          <option value="energy">âœ¨ Energy Alchemist</option>
-          <option value="questioner">â“ Truth Questioner</option>
-          <option value="historian">ðŸ•°ï¸ Pattern Historian</option>
-          <option value="language">ðŸŽ¨ Language Alchemist</option>
-          <option value="connector">ðŸ”— Synchronicity Engineer</option>
-          <option value="commander">ðŸ’ª Momentum Commander</option>
-          <option value="amplifier">ðŸ”¥ Field Amplifier</option>
-          <option value="observer">ðŸ‘ï¸ Silent Observer</option>
-        </optgroup>
-      </select>
-      <span id="mode-label" style="font-size:11px;color:#555;">Full Council</span>
-      <button id="council-mode-toggle" style="background:none;border:1px solid #333;color:#888;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;" title="Toggle between Clarify and Embody modes">âœ¨ Embody Mode</button>
-      <button id="settings-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">âš™ Settings</button>
-      <button id="clear-chat-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">ðŸ—‘ Clear</button>
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-title">
+      <div class="app-icon">&#9670;</div>
+      Quantum Council
+    </div>
+    <div class="top-bar-actions">
+      <button class="pill-btn" id="council-mode-toggle" title="Toggle Clarify / Embody">&#10024; Embody</button>
+      <button class="icon-btn" id="clear-chat-btn" title="Clear chat">&#10005;</button>
     </div>
   </div>
 
   <!-- INTENTION BAR -->
   <div class="intention-bar">
-    <span>INTENTION:</span>
-    <div class="intention-text" id="intention-text">(No intention set)</div>
-    <button id="intention-edit-btn">Edit</button>
-    <button id="intention-journal-btn" title="View intention history">ðŸ“–</button>
+    <span class="intention-label">Intention</span>
+    <div class="intention-text" id="intention-text">(tap Edit to set)</div>
+    <button class="intention-action" id="intention-edit-btn">Edit</button>
   </div>
 
   <!-- PHASE INDICATOR -->
@@ -60,53 +44,169 @@
   <!-- COUNCIL STATUS -->
   <div class="council-status" id="council-status"></div>
 
-  <!-- INPUT AREA -->
-  <div class="input-area">
-    <textarea id="user-input" placeholder="Speak to the council..." rows="1"></textarea>
-    <button id="send-btn">Send</button>
-    <button id="council-btn">âš¡ Run Council</button>
-    <button id="start-session-btn" title="Architect opens a new session">ðŸ§  Start</button>
-    <button id="council-convo-btn" title="Let the council talk to each other about your intention" style="border-color:#446;color:#88a;">ðŸ”® Let Them Talk</button>
+  <!-- COMPOSER AREA -->
+  <div class="composer-area">
+    <div class="composer-row">
+      <textarea id="user-input" placeholder="Speak to the council&#8230;" rows="1"></textarea>
+      <button class="send-btn" id="send-btn" title="Send">&#10148;</button>
+    </div>
+    <div class="composer-actions">
+      <button class="action-btn primary" id="council-btn">&#9889; Council</button>
+      <button class="action-btn accent" id="start-session-btn" title="Architect opens a new session">&#129504; Start</button>
+      <button class="action-btn" id="council-convo-btn" title="Let the council talk amongst themselves">&#9711; Talk</button>
+    </div>
   </div>
 
-  <!-- SETTINGS OVERLAY -->
-  <div class="settings-overlay" id="settings-overlay">
-    <div class="settings-panel">
-      <h2>âš™ Council Settings â€” API Keys & Models</h2>
-      <p style="font-size:12px;color:#555;margin-bottom:16px;">
-        Each persona uses its own OpenRouter API key. You can use different keys and models for each one.<br/>
-        Get keys at <a href="https://openrouter.ai/keys" target="_blank" style="color:#888;">openrouter.ai/keys</a>
-      </p>
-      <div style="margin-bottom:16px;">
-        <button id="fill-all-btn" style="padding:6px 14px;background:#1a1a2e;border:1px solid #336;color:#88a;font-family:monospace;font-size:11px;cursor:pointer;margin-top:0;">ðŸ”— Test Connection</button>
-        <span style="font-size:11px;color:#555;margin-left:8px;">Check Worker URL + token are working</span>
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-council" onclick="setNavTab('council')">
+      <span class="nav-icon">&#9670;</span>
+      <span class="nav-label">Council</span>
+    </button>
+    <button class="nav-btn" id="nav-solo" onclick="openSoloSheet()">
+      <span class="nav-icon">&#9651;</span>
+      <span class="nav-label">1-on-1</span>
+    </button>
+    <button class="nav-btn" id="nav-journal" onclick="openIntentionJournalNav()">
+      <span class="nav-icon">&#9711;</span>
+      <span class="nav-label">Journal</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="openSettingsNav()">
+      <span class="nav-icon">&#9881;</span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </nav>
+
+  <!-- SHEET: 1-on-1 SOLO MODE -->
+  <div class="sheet-overlay" id="solo-sheet" onclick="closeSheetOnBackdrop(event,'solo-sheet')">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">1-on-1 Mode</div>
+      <div class="sheet-subtitle">Choose a council member to speak with privately</div>
+      <div class="solo-list" id="solo-persona-list"></div>
+      <div class="sheet-actions">
+        <button class="sheet-btn secondary" onclick="setNavTab('council')">Back to Full Council</button>
+        <button class="sheet-btn ghost" onclick="closeSheet('solo-sheet')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHEET: SETTINGS -->
+  <div class="sheet-overlay" id="settings-sheet" onclick="closeSheetOnBackdrop(event,'settings-sheet')">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Settings</div>
+      <div class="sheet-subtitle">Worker connection and persona models</div>
+      <div class="worker-block">
+        <div class="worker-block-title">&#9654; Worker Connection</div>
+        <button id="fill-all-btn" class="action-btn accent" style="width:100%;margin-top:8px;">&#9679; Test Connection</button>
       </div>
       <div id="persona-settings-list"></div>
-      <div style="display:flex;gap:10px;margin-top:20px;">
-        <button id="settings-save">ðŸ’¾ Save Settings</button>
-        <button id="settings-close">âœ• Close</button>
+      <div class="sheet-actions">
+        <button class="sheet-btn primary" id="settings-save">Save Settings</button>
+        <button class="sheet-btn ghost" id="settings-close">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- INTENTION JOURNAL OVERLAY -->
-  <div class="settings-overlay" id="journal-overlay">
-    <div class="settings-panel" style="max-width:600px;">
-      <h2>ðŸ“– Intention Journal</h2>
-      <p style="font-size:12px;color:#555;margin-bottom:16px;">Your intention evolution over time.</p>
+  <!-- SHEET: INTENTION JOURNAL -->
+  <div class="sheet-overlay" id="journal-sheet" onclick="closeSheetOnBackdrop(event,'journal-sheet')">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Intention Journal</div>
+      <div class="sheet-subtitle">Your intention history over time</div>
       <div id="journal-entries"></div>
-      <div style="margin-top:20px;">
-        <button id="journal-close">âœ• Close</button>
+      <div class="sheet-actions">
+        <button class="sheet-btn ghost" id="journal-close">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPTS (order matters) -->
-  <script src="personas.js?v=4"></script>
-  <script src="api.js?v=4"></script>
-  <script src="memory.js?v=4"></script>
-  <script src="orchestrator.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <!-- HIDDEN: mode label + select used by app.js unchanged -->
+  <span id="mode-label" style="display:none;">Full Council</span>
+  <select id="mode-select" style="display:none;">
+    <option value="council">council</option>
+    <option value="architect">architect</option>
+    <option value="visionary">visionary</option>
+    <option value="strategist">strategist</option>
+    <option value="emotional">emotional</option>
+    <option value="energy">energy</option>
+    <option value="questioner">questioner</option>
+    <option value="historian">historian</option>
+    <option value="language">language</option>
+    <option value="connector">connector</option>
+    <option value="commander">commander</option>
+    <option value="amplifier">amplifier</option>
+    <option value="observer">observer</option>
+  </select>
 
+  <script src="memory.js?v=5"></script>
+  <script src="personas.js?v=5"></script>
+  <script src="api.js?v=5"></script>
+  <script src="orchestrator.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+
+  <script>
+    // NAV + SHEET HELPERS
+    function setNavTab(tab) {
+      document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
+      var navBtn = document.getElementById("nav-" + tab);
+      if (navBtn) navBtn.classList.add("active");
+      closeSheet("solo-sheet");
+      var sel = document.getElementById("mode-select");
+      if (sel) { sel.value = tab; sel.dispatchEvent(new Event("change")); }
+    }
+
+    function openSoloSheet() {
+      document.getElementById("solo-sheet").classList.add("active");
+    }
+
+    function openSettingsNav() {
+      document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
+      document.getElementById("nav-settings").classList.add("active");
+      if (typeof openSettings === "function") openSettings();
+    }
+
+    function openIntentionJournalNav() {
+      document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
+      document.getElementById("nav-journal").classList.add("active");
+      if (typeof openIntentionJournal === "function") openIntentionJournal();
+    }
+
+    function closeSheet(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove("active");
+    }
+
+    function closeSheetOnBackdrop(evt, id) {
+      if (evt.target === document.getElementById(id)) closeSheet(id);
+    }
+
+    function selectSoloPersona(personaId) {
+      closeSheet("solo-sheet");
+      document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
+      document.getElementById("nav-solo").classList.add("active");
+      var sel = document.getElementById("mode-select");
+      if (sel) { sel.value = personaId; sel.dispatchEvent(new Event("change")); }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(function() {
+        if (typeof PERSONAS === "undefined") return;
+        var container = document.getElementById("solo-persona-list");
+        if (!container) return;
+        PERSONAS.forEach(function(p) {
+          var btn = document.createElement("button");
+          btn.className = "solo-persona-btn";
+          btn.setAttribute("type", "button");
+          btn.innerHTML = "<span class='solo-persona-icon'>" + (p.icon || "&#9670;") + "</span>"
+            + "<span class='solo-persona-name'>" + (p.shortName || p.name) + "</span>"
+            + "<span class='solo-persona-role'>" + (p.role || "") + "</span>";
+          btn.addEventListener("click", function() { selectSoloPersona(p.id); });
+          container.appendChild(btn);
+        });
+      }, 200);
+    });
+  </script>
 </body>
 </html>
