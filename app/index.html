@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quantum Council</title>
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -14,29 +14,29 @@
 
   <!-- HEADER -->
   <div class="header">
-    <h1>🔮 Quantum Council</h1>
+    <h1>ðŸ”® Quantum Council</h1>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <select id="mode-select" style="background:#1a1a1a;border:1px solid #333;color:#aaa;font-family:monospace;font-size:11px;padding:4px 8px;">
         <option value="council">Full Council (all 12)</option>
         <optgroup label="1-on-1 Mode">
-          <option value="architect">🧠 Reality Architect</option>
-          <option value="visionary">🌌 Infinite Visionary</option>
-          <option value="strategist">🧱 Grounded Strategist</option>
-          <option value="emotional">❤️ Emotional Integrator</option>
-          <option value="energy">✨ Energy Alchemist</option>
-          <option value="questioner">❓ Truth Questioner</option>
-          <option value="historian">🕰️ Pattern Historian</option>
-          <option value="language">🎨 Language Alchemist</option>
-          <option value="connector">🔗 Synchronicity Engineer</option>
-          <option value="commander">💪 Momentum Commander</option>
-          <option value="amplifier">🔥 Field Amplifier</option>
-          <option value="observer">👁️ Silent Observer</option>
+          <option value="architect">ðŸ§  Reality Architect</option>
+          <option value="visionary">ðŸŒŒ Infinite Visionary</option>
+          <option value="strategist">ðŸ§± Grounded Strategist</option>
+          <option value="emotional">â¤ï¸ Emotional Integrator</option>
+          <option value="energy">âœ¨ Energy Alchemist</option>
+          <option value="questioner">â“ Truth Questioner</option>
+          <option value="historian">ðŸ•°ï¸ Pattern Historian</option>
+          <option value="language">ðŸŽ¨ Language Alchemist</option>
+          <option value="connector">ðŸ”— Synchronicity Engineer</option>
+          <option value="commander">ðŸ’ª Momentum Commander</option>
+          <option value="amplifier">ðŸ”¥ Field Amplifier</option>
+          <option value="observer">ðŸ‘ï¸ Silent Observer</option>
         </optgroup>
       </select>
       <span id="mode-label" style="font-size:11px;color:#555;">Full Council</span>
-      <button id="council-mode-toggle" style="background:none;border:1px solid #333;color:#888;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;" title="Toggle between Clarify and Embody modes">✨ Embody Mode</button>
-      <button id="settings-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">⚙ Settings</button>
-      <button id="clear-chat-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">🗑 Clear</button>
+      <button id="council-mode-toggle" style="background:none;border:1px solid #333;color:#888;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;" title="Toggle between Clarify and Embody modes">âœ¨ Embody Mode</button>
+      <button id="settings-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">âš™ Settings</button>
+      <button id="clear-chat-btn" style="background:none;border:1px solid #333;color:#666;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer;">ðŸ—‘ Clear</button>
     </div>
   </div>
 
@@ -45,7 +45,7 @@
     <span>INTENTION:</span>
     <div class="intention-text" id="intention-text">(No intention set)</div>
     <button id="intention-edit-btn">Edit</button>
-    <button id="intention-journal-btn" title="View intention history">📖</button>
+    <button id="intention-journal-btn" title="View intention history">ðŸ“–</button>
   </div>
 
   <!-- PHASE INDICATOR -->
@@ -64,27 +64,27 @@
   <div class="input-area">
     <textarea id="user-input" placeholder="Speak to the council..." rows="1"></textarea>
     <button id="send-btn">Send</button>
-    <button id="council-btn">⚡ Run Council</button>
-    <button id="start-session-btn" title="Architect opens a new session">🧠 Start</button>
-    <button id="council-convo-btn" title="Let the council talk to each other about your intention" style="border-color:#446;color:#88a;">🔮 Let Them Talk</button>
+    <button id="council-btn">âš¡ Run Council</button>
+    <button id="start-session-btn" title="Architect opens a new session">ðŸ§  Start</button>
+    <button id="council-convo-btn" title="Let the council talk to each other about your intention" style="border-color:#446;color:#88a;">ðŸ”® Let Them Talk</button>
   </div>
 
   <!-- SETTINGS OVERLAY -->
   <div class="settings-overlay" id="settings-overlay">
     <div class="settings-panel">
-      <h2>⚙ Council Settings — API Keys & Models</h2>
+      <h2>âš™ Council Settings â€” API Keys & Models</h2>
       <p style="font-size:12px;color:#555;margin-bottom:16px;">
         Each persona uses its own OpenRouter API key. You can use different keys and models for each one.<br/>
         Get keys at <a href="https://openrouter.ai/keys" target="_blank" style="color:#888;">openrouter.ai/keys</a>
       </p>
       <div style="margin-bottom:16px;">
-        <button id="fill-all-btn" style="padding:6px 14px;background:#1a1a2e;border:1px solid #336;color:#88a;font-family:monospace;font-size:11px;cursor:pointer;margin-top:0;">🔗 Test Connection</button>
+        <button id="fill-all-btn" style="padding:6px 14px;background:#1a1a2e;border:1px solid #336;color:#88a;font-family:monospace;font-size:11px;cursor:pointer;margin-top:0;">ðŸ”— Test Connection</button>
         <span style="font-size:11px;color:#555;margin-left:8px;">Check Worker URL + token are working</span>
       </div>
       <div id="persona-settings-list"></div>
       <div style="display:flex;gap:10px;margin-top:20px;">
-        <button id="settings-save">💾 Save Settings</button>
-        <button id="settings-close">✕ Close</button>
+        <button id="settings-save">ðŸ’¾ Save Settings</button>
+        <button id="settings-close">âœ• Close</button>
       </div>
     </div>
   </div>
@@ -92,21 +92,21 @@
   <!-- INTENTION JOURNAL OVERLAY -->
   <div class="settings-overlay" id="journal-overlay">
     <div class="settings-panel" style="max-width:600px;">
-      <h2>📖 Intention Journal</h2>
+      <h2>ðŸ“– Intention Journal</h2>
       <p style="font-size:12px;color:#555;margin-bottom:16px;">Your intention evolution over time.</p>
       <div id="journal-entries"></div>
       <div style="margin-top:20px;">
-        <button id="journal-close">✕ Close</button>
+        <button id="journal-close">âœ• Close</button>
       </div>
     </div>
   </div>
 
   <!-- SCRIPTS (order matters) -->
-  <script src="personas.js?v=3"></script>
-  <script src="api.js?v=3"></script>
-  <script src="memory.js?v=3"></script>
-  <script src="orchestrator.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="personas.js?v=4"></script>
+  <script src="api.js?v=4"></script>
+  <script src="memory.js?v=4"></script>
+  <script src="orchestrator.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 
 </body>
 </html>
