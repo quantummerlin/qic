@@ -78,6 +78,11 @@ export default {
       );
     }
 
+    // Validate model is provided and non-empty
+    if (!model || model.trim() === "") {
+      return respond({ error: `No model specified for persona '${personaId}'` }, 400, env, origin);
+    }
+
     // ---- Build message array ----
     const fullMessages = systemPrompt
       ? [{ role: "system", content: systemPrompt }, ...messages]
@@ -106,6 +111,15 @@ export default {
     }
 
     const data = await orRes.json();
+
+    // If OpenRouter returned an error object, surface it as a readable string
+    if (!orRes.ok && data.error) {
+      const msg = typeof data.error === "object"
+        ? (data.error.message || JSON.stringify(data.error))
+        : String(data.error);
+      return respond({ error: msg }, orRes.status, env, origin);
+    }
+
     return respond(data, orRes.status, env, origin);
   }
 };
