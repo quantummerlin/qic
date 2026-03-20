@@ -1,10 +1,37 @@
 {
   "name": "Quantum Council",
   "short_name": "QC",
+  "id": "/",
+  "scope": "/",
   "description": "Your personal AI council for intention and manifestation",
-  "start_url": "/",
+  "start_url": "/?pwa=1",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#111111",
-  "orientation": "portrait-primary"
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Library",
+      "short_name": "Library",
+      "description": "Open your intentions library",
+      "url": "/?pwa=1&tab=library",
+      "icons": [{ "src": "icon.svg", "sizes": "any" }]
+    }
+  ]
 }
