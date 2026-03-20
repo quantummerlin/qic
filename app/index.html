@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Quantum Council</title>
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -63,9 +63,9 @@
       <span class="nav-icon">&#9670;</span>
       <span class="nav-label">Council</span>
     </button>
-    <button class="nav-btn" id="nav-solo" onclick="openSoloSheet()">
-      <span class="nav-icon">&#9651;</span>
-      <span class="nav-label">1-on-1</span>
+    <button class="nav-btn" id="nav-library" onclick="openLibrarySheet()">
+      <span class="nav-icon">&#9776;</span>
+      <span class="nav-label">Library</span>
     </button>
     <button class="nav-btn" id="nav-journal" onclick="openIntentionJournalNav()">
       <span class="nav-icon">&#9711;</span>
@@ -77,16 +77,15 @@
     </button>
   </nav>
 
-  <!-- SHEET: 1-on-1 SOLO MODE -->
-  <div class="sheet-overlay" id="solo-sheet" onclick="closeSheetOnBackdrop(event,'solo-sheet')">
+  <!-- SHEET: LIBRARY -->
+  <div class="sheet-overlay" id="library-sheet" onclick="closeSheetOnBackdrop(event,'library-sheet')">
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
-      <div class="sheet-title">1-on-1 Mode</div>
-      <div class="sheet-subtitle">Choose a council member to speak with privately</div>
-      <div class="solo-list" id="solo-persona-list"></div>
+      <div class="sheet-title">Library</div>
+      <div class="sheet-subtitle">Your intentions &amp; threads</div>
+      <div class="library-entry-list" id="library-entry-list"></div>
       <div class="sheet-actions">
-        <button class="sheet-btn secondary" onclick="setNavTab('council')">Back to Full Council</button>
-        <button class="sheet-btn ghost" onclick="closeSheet('solo-sheet')">Close</button>
+        <button class="sheet-btn ghost" onclick="closeLibrarySheet()">Close</button>
       </div>
     </div>
   </div>
@@ -140,11 +139,11 @@
     <option value="observer">observer</option>
   </select>
 
-  <script src="memory.js?v=5"></script>
-  <script src="personas.js?v=5"></script>
-  <script src="api.js?v=5"></script>
-  <script src="orchestrator.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="memory.js?v=6"></script>
+  <script src="personas.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="orchestrator.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 
   <script>
     // NAV + SHEET HELPERS
@@ -152,25 +151,21 @@
       document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
       var navBtn = document.getElementById("nav-" + tab);
       if (navBtn) navBtn.classList.add("active");
-      closeSheet("solo-sheet");
+      closeSheet("library-sheet");
       var sel = document.getElementById("mode-select");
       if (sel) { sel.value = tab; sel.dispatchEvent(new Event("change")); }
-    }
-
-    function openSoloSheet() {
-      document.getElementById("solo-sheet").classList.add("active");
     }
 
     function openSettingsNav() {
       document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
       document.getElementById("nav-settings").classList.add("active");
-      if (typeof openSettings === "function") openSettings();
+      if (typeof window.openSettings === "function") window.openSettings();
     }
 
     function openIntentionJournalNav() {
       document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
       document.getElementById("nav-journal").classList.add("active");
-      if (typeof openIntentionJournal === "function") openIntentionJournal();
+      if (typeof window.openIntentionJournal === "function") window.openIntentionJournal();
     }
 
     function closeSheet(id) {
@@ -182,31 +177,36 @@
       if (evt.target === document.getElementById(id)) closeSheet(id);
     }
 
-    function selectSoloPersona(personaId) {
-      closeSheet("solo-sheet");
-      document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("active"); });
-      document.getElementById("nav-solo").classList.add("active");
-      var sel = document.getElementById("mode-select");
-      if (sel) { sel.value = personaId; sel.dispatchEvent(new Event("change")); }
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(function() {
-        if (typeof PERSONAS === "undefined") return;
-        var container = document.getElementById("solo-persona-list");
-        if (!container) return;
-        PERSONAS.forEach(function(p) {
-          var btn = document.createElement("button");
-          btn.className = "solo-persona-btn";
-          btn.setAttribute("type", "button");
-          btn.innerHTML = "<span class='solo-persona-icon'>" + (p.icon || "&#9670;") + "</span>"
-            + "<span class='solo-persona-name'>" + (p.shortName || p.name) + "</span>"
-            + "<span class='solo-persona-role'>" + (p.role || "") + "</span>";
-          btn.addEventListener("click", function() { selectSoloPersona(p.id); });
-          container.appendChild(btn);
-        });
-      }, 200);
-    });
   </script>
+
+  <!-- WELCOME FLOW OVERLAY -->
+  <div id="welcome-flow-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+
+    <!-- Step 1: Set Intention -->
+    <div id="welcome-step-1" class="welcome-step" style="display:flex;flex-direction:column;width:100%;max-width:400px;">
+      <div style="font-size:28px;text-align:center;margin-bottom:8px;">&#9670;</div>
+      <div style="font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#fff;">Welcome</div>
+      <div style="font-size:13px;color:#778;text-align:center;margin-bottom:24px;">Set your first intention to begin.</div>
+      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">INTENTION NAME</label>
+      <input id="wf-intention-title" type="text" placeholder="e.g. My Health" style="margin-bottom:12px;" />
+      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">DESCRIBE IT AS ALREADY REAL</label>
+      <textarea id="wf-intention-text" rows="3" placeholder="e.g. I am thriving in vibrant health..." style="margin-bottom:20px;resize:none;"></textarea>
+      <button class="sheet-btn primary" onclick="window.completeWelcomeStep1 &amp;&amp; window.completeWelcomeStep1()">Continue &#8250;</button>
+    </div>
+
+    <!-- Step 2: Private workspace code (vault) -->
+    <div id="welcome-step-2" class="welcome-step" style="display:none;flex-direction:column;width:100%;max-width:400px;">
+      <div style="font-size:28px;text-align:center;margin-bottom:8px;">&#9632;</div>
+      <div style="font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#fff;">Private Workspace</div>
+      <div style="font-size:13px;color:#778;text-align:center;margin-bottom:24px;">Optionally add a private access code for an additional workspace. You can skip this.</div>
+      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">ACCESS CODE</label>
+      <input id="wf-vault-code" type="password" placeholder="Choose a code" style="margin-bottom:12px;" />
+      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">CONFIRM CODE</label>
+      <input id="wf-vault-confirm" type="password" placeholder="Confirm code" style="margin-bottom:20px;" />
+      <button class="sheet-btn primary" style="margin-bottom:10px;" onclick="window.completeWelcomeStep2 &amp;&amp; window.completeWelcomeStep2()">Set Code &amp; Begin</button>
+      <button class="sheet-btn ghost" onclick="window.skipWelcomeStep2 &amp;&amp; window.skipWelcomeStep2()">Skip</button>
+    </div>
+
+  </div>
 </body>
 </html>

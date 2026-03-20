@@ -691,3 +691,167 @@ html, body {
 .journal-text { font-size: 14px; color: var(--text-2); line-height: 1.55; }
 .journal-entry.current .journal-date { color: var(--green); }
 .journal-entry.current .journal-text { color: var(--text); }
+
+/* ----------------------------------------------------------------
+   LIBRARY SHEET
+   ---------------------------------------------------------------- */
+.library-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.library-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.library-entry:active { background: var(--accent-soft); }
+.library-entry.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.library-entry-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-entry-meta {
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.library-entry-date {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+}
+
+.library-new-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-3);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+}
+.library-new-btn:active { border-color: var(--accent); color: var(--accent); }
+
+/* ----------------------------------------------------------------
+   VAULT ACCESS ROW (blends in at bottom of library list)
+   ---------------------------------------------------------------- */
+.vault-access-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 6px 0 0;
+  margin-top: 4px;
+}
+
+#vault-unlock-row {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.vault-code-input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+.vault-code-input:focus { border-color: rgba(255,255,255,0.15); }
+
+.vault-code-submit {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.vault-code-submit:active { color: var(--text); }
+
+.vault-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.1);
+  cursor: pointer;
+  letter-spacing: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+.vault-toggle-btn:active { color: rgba(255,255,255,0.25); }
+
+.vault-entries-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.vault-entry {
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* ----------------------------------------------------------------
+   WELCOME STEP (onboarding)
+   ---------------------------------------------------------------- */
+.welcome-step {
+  animation: msgIn 0.3s ease;
+}
+
+.welcome-step input,
+.welcome-step textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.welcome-step input:focus,
+.welcome-step textarea:focus {
+  border-color: rgba(255,255,255,0.2);
+}

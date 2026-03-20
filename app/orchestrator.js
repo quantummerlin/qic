@@ -124,6 +124,102 @@ const Orchestrator = (function () {
   }
 
   /**
+   * Curated council response: Architect first decides which 2-3 personas
+   * are most relevant to this message, then only those respond, followed
+   * by Architect synthesis. Used for regular chat messages (not intention
+   * creation or manual council runs).
+   */
+  async function runCouncilCurated(userMessage, chatHistory, {
+    onPersonaMessage,
+    onTypingStart,
+    onTypingStop,
+    onStatusUpdate,
+    onComplete
+  }) {
+    if (isRunning) return;
+    isRunning = true;
+
+    const personas = window.PERSONAS;
+    const architect = personas.find(p => p.isArchitect);
+    const council = personas.filter(p => !p.isArchitect);
+    const intention = window.Memory.loadIntention();
+    const context = window.Memory.buildContext(chatHistory, userMessage);
+
+    onStatusUpdate("Architect is reading the room...");
+    onTypingStart("Architect");
+    await delay(400 + Math.random() * 400);
+    onTypingStop();
+
+    // Step 1: Ask Architect to pick 2-3 personas to respond
+    const councilNames = council.map(p => `${p.id} (${p.role})`).join(", ");
+    const curationPrompt = `The user just said: "${userMessage}"
+
+The council members available are: ${councilNames}
+
+Based on this message and the current intention, which 2 or 3 council members would add the most value by responding right now? Consider who has the most relevant perspective.
+
+Reply with ONLY a JSON array of persona IDs, like: ["visionary","emotional","commander"]
+No explanation. Just the JSON array.`;
+
+    let selectedIds = [];
+    try {
+      const raw = await callPersona(
+        architect,
+        [{ role: "user", content: curationPrompt }],
+        { max_tokens: 60, temperature: 0.3 }
+      );
+      const match = raw.match(/\[.*?\]/s);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        selectedIds = parsed.filter(id => council.some(p => p.id === id)).slice(0, 3);
+      }
+    } catch (e) {}
+
+    // Fallback: pick 2 random if parsing failed
+    if (selectedIds.length === 0) {
+      const shuffled = shuffleArray([...council]);
+      selectedIds = shuffled.slice(0, 2).map(p => p.id);
+    }
+
+    const selectedPersonas = selectedIds.map(id => council.find(p => p.id === id)).filter(Boolean);
+
+    // Step 2: Call selected personas in parallel
+    const results = await Promise.all(selectedPersonas.map(async (p) => {
+      const response = await callPersona(p, context);
+      return { persona: p, response };
+    }));
+
+    // Step 3: Display responses
+    for (const { persona, response } of results) {
+      onTypingStart(persona.shortName);
+      onStatusUpdate(`${persona.icon} ${persona.shortName} is responding...`);
+      await delay(300 + Math.random() * 600);
+      onTypingStop();
+      onPersonaMessage(persona, response, "persona");
+      await delay(150 + Math.random() * 200);
+    }
+
+    // Step 4: Architect synthesizes
+    onTypingStart("Architect");
+    onStatusUpdate("🧠 Architect synthesizing...");
+    await delay(500 + Math.random() * 500);
+
+    const supporterContext = results.map(r => `[${r.persona.shortName}]: ${r.response}`).join("\n\n");
+    const synthesisPrompt = `${userMessage}\n\n[Council members who just responded:]\n${supporterContext}`;
+    const synthesis = await callPersona(
+      architect,
+      [...context, { role: "user", content: synthesisPrompt }],
+      { max_tokens: 350 }
+    );
+
+    onTypingStop();
+    onPersonaMessage(architect, synthesis, "synthesis");
+    onStatusUpdate("");
+    isRunning = false;
+    onComplete();
+  }
+
+  /**
    * Ask a single persona directly (for 1-on-1 mode).
    */
   async function askSinglePersona(personaId, userMessage, chatHistory, {
@@ -504,6 +600,7 @@ Speak directly to the user. This is not a greeting — it's a recognition of whe
 
   return {
     runCouncil,
+    runCouncilCurated,
     askSinglePersona,
     startSession,
     runCouncilConversation,

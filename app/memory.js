@@ -10,7 +10,11 @@ const STORAGE_KEYS = {
   SESSION_ID: "qc_session_id",
   LAST_USER_ACTIVITY: "qc_last_user_activity",
   LAST_COUNCIL_CONVO: "qc_last_council_convo",
-  PERSONA_MEMORIES: "qc_persona_memories"
+  PERSONA_MEMORIES: "qc_persona_memories",
+  INTENTIONS_LIBRARY: "qc_intentions_library",  // [{ id, title, text, createdAt, updatedAt, chatKey }]
+  ACTIVE_INTENTION_ID: "qc_active_intention_id", // id of current library entry
+  VAULT_HASH: "qc_vault_hash",                   // SHA-256 of vault password
+  VAULT_INTENTIONS: "qc_vault_intentions"        // encrypted (XOR+b64) vault entries
 };
 
 const MAX_HISTORY = 200; // max messages stored
@@ -328,6 +332,224 @@ function getPersonaMemoryContext(personaId) {
 // ----------------------------------------------------------
 // EXPORT
 // ----------------------------------------------------------
+// INTENTIONS LIBRARY
+// Multiple named intentions, each with its own chat thread
+// ----------------------------------------------------------
+
+function loadIntentionsLibrary() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.INTENTIONS_LIBRARY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveIntentionsLibrary(lib) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.INTENTIONS_LIBRARY, JSON.stringify(lib));
+  } catch (e) { console.error("Failed to save library:", e); }
+}
+
+function getActiveIntentionId() {
+  return localStorage.getItem(STORAGE_KEYS.ACTIVE_INTENTION_ID) || null;
+}
+
+function setActiveIntentionId(id) {
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_INTENTION_ID, id);
+}
+
+/**
+ * Create a new library entry and make it active.
+ * Returns the new entry.
+ */
+function createLibraryIntention(title, text) {
+  const lib = loadIntentionsLibrary();
+  const id = generateId();
+  const now = Date.now();
+  const entry = { id, title: title || text.substring(0, 60), text, createdAt: now, updatedAt: now, chatKey: "qc_chat_" + id };
+  lib.unshift(entry); // newest first
+  saveIntentionsLibrary(lib);
+  setActiveIntentionId(id);
+  // Sync legacy intention storage too
+  saveIntention(text);
+  return entry;
+}
+
+/**
+ * Update text/title of an existing library entry.
+ */
+function updateLibraryIntention(id, changes) {
+  const lib = loadIntentionsLibrary();
+  const idx = lib.findIndex(e => e.id === id);
+  if (idx === -1) return null;
+  Object.assign(lib[idx], changes, { updatedAt: Date.now() });
+  saveIntentionsLibrary(lib);
+  if (changes.text && id === getActiveIntentionId()) saveIntention(lib[idx].text);
+  return lib[idx];
+}
+
+function deleteLibraryIntention(id) {
+  let lib = loadIntentionsLibrary();
+  const entry = lib.find(e => e.id === id);
+  if (!entry) return;
+  lib = lib.filter(e => e.id !== id);
+  saveIntentionsLibrary(lib);
+  // Clean up its chat history
+  localStorage.removeItem(entry.chatKey);
+  // If it was the active one, switch to first remaining
+  if (getActiveIntentionId() === id) {
+    setActiveIntentionId(lib.length ? lib[0].id : null);
+    if (lib.length) saveIntention(lib[0].text);
+    else clearIntention();
+  }
+}
+
+/**
+ * Switch active intention -> loads that entry's chat history.
+ * Returns { entry, chatHistory }
+ */
+function switchToLibraryIntention(id) {
+  const lib = loadIntentionsLibrary();
+  const entry = lib.find(e => e.id === id);
+  if (!entry) return null;
+  setActiveIntentionId(id);
+  saveIntention(entry.text);
+  const raw = localStorage.getItem(entry.chatKey);
+  const chatHistory = raw ? JSON.parse(raw) : [];
+  return { entry, chatHistory };
+}
+
+/**
+ * Save chat history for a specific library entry.
+ */
+function saveLibraryChatHistory(intentionId, messages) {
+  const lib = loadIntentionsLibrary();
+  const entry = lib.find(e => e.id === intentionId);
+  if (!entry) { saveChatHistory(messages); return; }
+  try {
+    const trimmed = messages.slice(-MAX_HISTORY);
+    localStorage.setItem(entry.chatKey, JSON.stringify(trimmed));
+  } catch (e) { console.error("Failed to save library chat:", e); }
+}
+
+/**
+ * Load chat history for a specific library entry.
+ */
+function loadLibraryChatHistory(intentionId) {
+  const lib = loadIntentionsLibrary();
+  const entry = lib.find(e => e.id === intentionId);
+  if (!entry) return loadChatHistory();
+  try {
+    const raw = localStorage.getItem(entry.chatKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+// ----------------------------------------------------------
+// SECRET VAULT
+// Password-protected second set of intentions.
+// The vault's existence is never confirmed to someone who can't unlock it.
+// Password stored as SHA-256 hash. Content XOR-obfuscated with derived key.
+// ----------------------------------------------------------
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function xorObfuscate(text, key) {
+  // Simple XOR with repeating key, then base64-encode
+  const keyBytes = new TextEncoder().encode(key);
+  const textBytes = new TextEncoder().encode(text);
+  const out = new Uint8Array(textBytes.length);
+  for (let i = 0; i < textBytes.length; i++) {
+    out[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+  }
+  return btoa(String.fromCharCode(...out));
+}
+
+function xorDeobfuscate(b64, key) {
+  const keyBytes = new TextEncoder().encode(key);
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    out[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
+  }
+  return new TextDecoder().decode(out);
+}
+
+async function vaultSetPassword(password) {
+  const hash = await sha256(password + "qc_vault_salt_v1");
+  localStorage.setItem(STORAGE_KEYS.VAULT_HASH, hash);
+}
+
+function vaultHasPassword() {
+  return !!localStorage.getItem(STORAGE_KEYS.VAULT_HASH);
+}
+
+async function vaultVerifyPassword(password) {
+  const stored = localStorage.getItem(STORAGE_KEYS.VAULT_HASH);
+  if (!stored) return false;
+  const attempt = await sha256(password + "qc_vault_salt_v1");
+  return attempt === stored;
+}
+
+async function vaultLoad(password) {
+  const ok = await vaultVerifyPassword(password);
+  if (!ok) return null;
+  const raw = localStorage.getItem(STORAGE_KEYS.VAULT_INTENTIONS);
+  if (!raw) return [];
+  try {
+    const key = await sha256(password);
+    return JSON.parse(xorDeobfuscate(raw, key));
+  } catch (e) { return []; }
+}
+
+async function vaultSave(password, intentions) {
+  const key = await sha256(password);
+  const encoded = xorObfuscate(JSON.stringify(intentions), key);
+  localStorage.setItem(STORAGE_KEYS.VAULT_INTENTIONS, encoded);
+}
+
+async function vaultAddIntention(password, title, text) {
+  const intentions = await vaultLoad(password);
+  if (!intentions) return false;
+  const id = generateId();
+  intentions.unshift({ id, title: title || text.substring(0, 60), text, createdAt: Date.now(), chatKey: "qc_vchat_" + id });
+  await vaultSave(password, intentions);
+  return true;
+}
+
+async function vaultDeleteIntention(password, id) {
+  const intentions = await vaultLoad(password);
+  if (!intentions) return false;
+  const updated = intentions.filter(e => e.id !== id);
+  await vaultSave(password, updated);
+  return true;
+}
+
+async function vaultLoadChat(password, intentionId) {
+  const intentions = await vaultLoad(password);
+  if (!intentions) return null;
+  const entry = intentions.find(e => e.id === intentionId);
+  if (!entry) return null;
+  const rawKey = STORAGE_KEYS.VAULT_INTENTIONS + "_chat_" + intentionId;
+  const raw = localStorage.getItem(rawKey);
+  if (!raw) return { entry, chatHistory: [] };
+  try {
+    const key = await sha256(password + intentionId);
+    return { entry, chatHistory: JSON.parse(xorDeobfuscate(raw, key)) };
+  } catch (e) { return { entry, chatHistory: [] }; }
+}
+
+async function vaultSaveChat(password, intentionId, messages) {
+  const ok = await vaultVerifyPassword(password);
+  if (!ok) return;
+  const key = await sha256(password + intentionId);
+  const rawKey = STORAGE_KEYS.VAULT_INTENTIONS + "_chat_" + intentionId;
+  localStorage.setItem(rawKey, xorObfuscate(JSON.stringify(messages.slice(-MAX_HISTORY)), key));
+}
+
+// ----------------------------------------------------------
 
 window.Memory = {
   loadChatHistory,
@@ -354,5 +576,26 @@ window.Memory = {
   savePersonaMemories,
   getPersonaMemory,
   addPersonaObservation,
-  getPersonaMemoryContext
+  getPersonaMemoryContext,
+  // Library
+  loadIntentionsLibrary,
+  saveIntentionsLibrary,
+  getActiveIntentionId,
+  setActiveIntentionId,
+  createLibraryIntention,
+  updateLibraryIntention,
+  deleteLibraryIntention,
+  switchToLibraryIntention,
+  saveLibraryChatHistory,
+  loadLibraryChatHistory,
+  // Vault
+  vaultSetPassword,
+  vaultHasPassword,
+  vaultVerifyPassword,
+  vaultLoad,
+  vaultSave,
+  vaultAddIntention,
+  vaultDeleteIntention,
+  vaultLoadChat,
+  vaultSaveChat
 };
