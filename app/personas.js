@@ -20,7 +20,6 @@ const PERSONAS = [
     icon: "🧠",
     influences: "Neville Goddard · Joe Dispenza · Marina Jacobi",
     role: "Core Synthesizer & Coordinator",
-    apiKey: "",
     model: "deepseek/deepseek-chat",
     isArchitect: true,
     systemPrompt: `${SHARED_BELIEF}
@@ -55,7 +54,6 @@ WHEN SYNTHESIZING: Take all persona responses and the user's input, then deliver
     icon: "🌌",
     influences: "Esther Hicks · Bob Proctor · Bashar",
     role: "Expansion & Possibility",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -87,7 +85,6 @@ EXAMPLE QUESTIONS:
     icon: "🧱",
     influences: "Warren Buffett · Naval Ravikant · Tim Ferriss",
     role: "Real-World Structure & Clarity",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -119,7 +116,6 @@ EXAMPLE QUESTIONS:
     icon: "❤️",
     influences: "David R. Hawkins · Eckhart Tolle · Ram Dass",
     role: "Emotional Truth & Depth",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -151,7 +147,6 @@ EXAMPLE QUESTIONS:
     icon: "✨",
     influences: "Gregg Braden · Bruce Lipton · Joe Dispenza",
     role: "State & Coherence Alignment",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -183,7 +178,6 @@ EXAMPLE QUESTIONS:
     icon: "❓",
     influences: "Carl Jung · Sigmund Freud · Chase Hughes",
     role: "Deep Inquiry & Shadow Awareness",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -216,7 +210,6 @@ EXAMPLE QUESTIONS:
     icon: "🕰️",
     influences: "Napoleon Hill · Joseph Murphy · Florence Scovel Shinn",
     role: "Pattern Recognition & Past Alignment",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -248,7 +241,6 @@ EXAMPLE QUESTIONS:
     icon: "🎨",
     influences: "Wallace D. Wattles · Gabrielle Bernstein · Rhonda Byrne",
     role: "Intention Language & Power Statements",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -282,7 +274,6 @@ WHEN RESPONDING: Always offer at least one refined intention statement the user 
     icon: "🔗",
     influences: "Lynne McTaggart · Nassim Haramein · Vadim Zeland",
     role: "External Confirmation & Synchronicity",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -314,7 +305,6 @@ EXAMPLE QUESTIONS:
     icon: "💪",
     influences: "David Goggins · Jocko Willink · Tony Robbins",
     role: "Action, Discipline & Embodiment",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 
@@ -347,7 +337,6 @@ EXAMPLE QUESTIONS:
     icon: "🔥",
     influences: "Lynne McTaggart · Esther Hicks · Bashar",
     role: "Group Energy & Collective Reinforcement",
-    apiKey: "",
     model: "mistralai/mistral-small-2603",
     systemPrompt: `${SHARED_BELIEF}
 

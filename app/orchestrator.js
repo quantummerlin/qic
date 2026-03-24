@@ -156,7 +156,7 @@ const Orchestrator = (function () {
 
 The council members available are: ${councilNames}
 
-Based on this message and the current intention, which 2 or 3 council members would add the most value by responding right now? Consider who has the most relevant perspective.
+Based on this message and the current intention, which 2, 3, or 4 council members would add the most value by responding right now? Consider who has the most relevant perspective.
 
 Reply with ONLY a JSON array of persona IDs, like: ["visionary","emotional","commander"]
 No explanation. Just the JSON array.`;
@@ -171,7 +171,7 @@ No explanation. Just the JSON array.`;
       const match = raw.match(/\[.*?\]/s);
       if (match) {
         const parsed = JSON.parse(match[0]);
-        selectedIds = parsed.filter(id => council.some(p => p.id === id)).slice(0, 3);
+        selectedIds = parsed.filter(id => council.some(p => p.id === id)).slice(0, 4);
       }
     } catch (e) {}
 

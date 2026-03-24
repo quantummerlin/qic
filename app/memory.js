@@ -550,6 +550,20 @@ async function vaultSaveChat(password, intentionId, messages) {
 }
 
 // ----------------------------------------------------------
+// LAST-READ TRACKING (per-intention unread divider)
+// ----------------------------------------------------------
+
+function getLastReadMessageId(intentionId) {
+  if (!intentionId) return null;
+  return localStorage.getItem("qc_last_read_" + intentionId) || null;
+}
+
+function setLastReadMessageId(intentionId, messageId) {
+  if (!intentionId || !messageId) return;
+  localStorage.setItem("qc_last_read_" + intentionId, messageId);
+}
+
+// ----------------------------------------------------------
 
 window.Memory = {
   loadChatHistory,
@@ -597,5 +611,8 @@ window.Memory = {
   vaultAddIntention,
   vaultDeleteIntention,
   vaultLoadChat,
-  vaultSaveChat
+  vaultSaveChat,
+  // Unread divider
+  getLastReadMessageId,
+  setLastReadMessageId
 };

@@ -4,13 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Quantum Council</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <!-- Google Fonts: Plus Jakarta Sans, Inter, Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="welcome.css?v=1" />
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="QC" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#050508" />
   <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="mask-icon" href="icon.svg" color="#5E5CE6" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -24,8 +30,20 @@
       Quantum Council
     </div>
     <div class="top-bar-actions">
-      <button class="pill-btn" id="council-mode-toggle" title="Toggle Clarify / Embody">&#10024; Embody</button>
-      <button class="icon-btn" id="clear-chat-btn" title="Clear chat">&#10005;</button>
+      <div class="top-dots-wrap">
+        <button class="top-dots-btn" id="top-dots-btn" title="More options">&#8942;</button>
+        <div class="top-dots-menu" id="top-dots-menu">
+          <button type="button" class="dots-menu-item" id="kmenu-mode">&#10024; Embody Mode</button>
+          <div class="dots-menu-divider"></div>
+          <button type="button" class="dots-menu-item" id="kmenu-edit">&#9998; Edit Messages</button>
+        </div>
+      </div>
+      <!-- Compat: referenced by JS, kept hidden -->
+      <div style="display:none" aria-hidden="true">
+        <button class="pill-btn" id="council-mode-toggle">&#10024; Embody</button>
+        <button class="pill-btn" id="edit-messages-btn">Edit</button>
+        <button class="pill-btn hidden" id="done-messages-btn">Done</button>
+      </div>
     </div>
   </div>
 
@@ -59,6 +77,19 @@
       <button class="action-btn accent" id="start-session-btn" title="Architect opens a new session">&#129504; Start</button>
       <button class="action-btn" id="council-convo-btn" title="Let the council talk amongst themselves">&#9711; Talk</button>
     </div>
+  </div>
+
+  <!-- MESSAGE SELECTION TOOLBAR -->
+  <div class="message-selection-toolbar hidden" id="message-selection-toolbar">
+    <button class="selection-btn cancel" id="selection-cancel">Cancel</button>
+    <button class="selection-btn share" id="selection-share" disabled>
+      <span class="selection-icon">&#8593;</span>
+      <span class="selection-count">Share <span id="share-count">0</span></span>
+    </button>
+    <button class="selection-btn delete" id="selection-delete" disabled>
+      <span class="selection-icon">&#10005;</span>
+      <span class="selection-count">Delete <span id="delete-count">0</span></span>
+    </button>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -125,6 +156,30 @@
     </div>
   </div>
 
+  <!-- SHEET: SHARE FORMAT SELECTION -->
+  <div class="sheet-overlay" id="share-format-sheet" onclick="closeSheetOnBackdrop(event,'share-format-sheet')">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Share Messages</div>
+      <div class="sheet-subtitle">Choose format</div>
+      <div class="share-options">
+        <button class="share-option" id="share-plain-btn">
+          <span class="share-option-icon">&#128196;</span>
+          <span class="share-option-text">Plain Text</span>
+          <span class="share-option-desc">Simple text with timestamps</span>
+        </button>
+        <button class="share-option" id="share-formatted-btn">
+          <span class="share-option-icon">&#128221;</span>
+          <span class="share-option-text">Formatted</span>
+          <span class="share-option-desc">With persona icons and styling</span>
+        </button>
+      </div>
+      <div class="sheet-actions">
+        <button class="sheet-btn ghost" onclick="closeSheet('share-format-sheet')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HIDDEN: mode label + select used by app.js unchanged -->
   <span id="mode-label" style="display:none;">Full Council</span>
   <select id="mode-select" style="display:none;">
@@ -150,11 +205,12 @@
       });
     }
   </script>
-  <script src="memory.js?v=6"></script>
-  <script src="personas.js?v=6"></script>
-  <script src="api.js?v=6"></script>
-  <script src="orchestrator.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="effects.js?v=1"></script>
+  <script src="memory.js?v=7"></script>
+  <script src="personas.js?v=7"></script>
+  <script src="api.js?v=7"></script>
+  <script src="orchestrator.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 
   <script>
     // NAV + SHEET HELPERS
@@ -190,32 +246,316 @@
 
   </script>
 
-  <!-- WELCOME FLOW OVERLAY -->
-  <div id="welcome-flow-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <script>
+    // ========================================
+    // WELCOME FLOW FUNCTIONS
+    // ========================================
+    
+    let currentWelcomeStep = 1;
+    let userName = '';
+    let selectedIntention = '';
+    let apiMode = '';
+    
+    const intentionExamples = [
+      "I am thriving in vibrant health, waking up energized and grateful every single day.",
+      "I have created a business that serves thousands while giving me freedom and abundance.",
+      "My relationship is a source of deep joy, growth, and unwavering support.",
+      "I wake up excited about my work, knowing I'm making a meaningful impact."
+    ];
+    
+    const personaData = {
+      architect: { icon: '&#129504;', name: 'The Reality Architect', role: 'Coordinates your council', quote: '"I synthesize all wisdom into clear, locked-in realities."', influences: 'Neville Goddard &middot; Joe Dispenza' },
+      visionary: { icon: '&#127756;', name: 'The Visionary', role: 'Sees infinite possibilities', quote: '"I see the infinite possibilities already waiting for you."', influences: 'Bashar &middot; Abraham Hicks' },
+      strategist: { icon: '&#129521;', name: 'The Strategist', role: 'Grounds dreams in action', quote: '"I ground your dreams in practical daily action."', influences: 'Peter Drucker &middot; Jim Collins' },
+      emotional: { icon: '&#10084;', name: 'The Emotional Guide', role: 'Ensures heart alignment', quote: '"I ensure you feel this reality in your heart."', influences: 'Bren&eacute; Brown &middot; Karla McLaren' },
+      energy: { icon: '&#10024;', name: 'The Energy Worker', role: 'Aligns vibration', quote: '"I align your vibration with your desires."', influences: 'Joe Dispenza &middot; Donna Eden' },
+      questioner: { icon: '&#10067;', name: 'The Questioner', role: 'Asks what needs asking', quote: '"I ask what needs to be asked, gently."', influences: 'Byron Katie &middot; Socrates' },
+      historian: { icon: '&#128220;', name: 'The Historian', role: 'Connects to journey', quote: '"I connect your now to your greater journey."', influences: 'Joseph Campbell &middot; Clarissa Pinkola Est&eacute;s' },
+      language: { icon: '&#128172;', name: 'The Language Smith', role: 'Words into reality', quote: '"I help you speak your reality into form."', influences: 'Fernando Flores &middot; Marshall Rosenberg' },
+      connector: { icon: '&#128279;', name: 'The Connector', role: 'Reveals synchronicity', quote: '"I reveal the synchronicities guiding you."', influences: 'Carl Jung &middot; Malcolm Gladwell' },
+      commander: { icon: '&#9876;', name: 'The Commander', role: 'Calls forth action', quote: '"I call forth your disciplined action."', influences: 'Jocko Willink &middot; David Goggins' },
+      observer: { icon: '&#128065;', name: 'The Observer', role: 'Holds space', quote: '"I witness and hold space for your truth."', influences: 'Eckhart Tolle &middot; Pema Ch&ouml;dr&ouml;n' }
+    };
+    
+    window.welcomeNextStep = function(step) {
+      document.querySelectorAll('.welcome-step').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.progress-step').forEach(p => p.classList.remove('active'));
+      document.getElementById('welcome-step-' + step).classList.add('active');
+      document.querySelector('.progress-step[data-step="' + step + '"]').classList.add('active');
+      for (let i = 1; i < step; i++) {
+        document.querySelector('.progress-step[data-step="' + i + '"]').classList.add('completed');
+      }
+      currentWelcomeStep = step;
+      if (step === 3 || step === 5) {
+        const name = document.getElementById('wf-user-name').value || 'Friend';
+        const el3 = document.getElementById('step3-greeting');
+        const el5 = document.getElementById('step5-name');
+        if (el3) el3.textContent = name;
+        if (el5) el5.textContent = name;
+      }
+      if (step === 3) {
+        userName = document.getElementById('wf-user-name').value;
+        if (userName) localStorage.setItem('qc_user_name', userName);
+      }
+    };
+    
+    window.welcomePrevStep = function(step) { window.welcomeNextStep(step); };
+    
+    window.skipWelcome = function() {
+      document.getElementById('welcome-flow-overlay').classList.remove('active');
+      if (typeof window.closeWelcomeFlow === 'function') window.closeWelcomeFlow();
+    };
+    
+    window.showPersonaCard = function(personaId) {
+      const data = personaData[personaId];
+      if (!data) return;
+      document.getElementById('card-icon').innerHTML = data.icon;
+      document.getElementById('card-name').textContent = data.name;
+      document.getElementById('card-role').textContent = data.role;
+      document.getElementById('card-quote').textContent = data.quote;
+      document.getElementById('card-influences').innerHTML = data.influences;
+      document.getElementById('persona-card').style.display = 'block';
+    };
+    
+    window.hidePersonaCard = function() {
+      document.getElementById('persona-card').style.display = 'none';
+    };
+    
+    window.setIntentionExample = function(index) {
+      const textarea = document.getElementById('wf-intention-text');
+      textarea.value = intentionExamples[index];
+      textarea.focus();
+      const lockBtn = document.getElementById('lock-intention-btn');
+      if (lockBtn) lockBtn.disabled = false;
+    };
+    
+    document.addEventListener('input', function(e) {
+      if (e.target.id === 'wf-intention-text') {
+        const lockBtn = document.getElementById('lock-intention-btn');
+        if (lockBtn) lockBtn.disabled = e.target.value.trim().length === 0;
+      }
+      if (e.target.id === 'wf-user-name') {
+        const preview = document.getElementById('name-preview');
+        const previewName = document.getElementById('preview-name');
+        if (preview && previewName) {
+          if (e.target.value.trim()) {
+            preview.style.display = 'flex';
+            previewName.textContent = e.target.value;
+          } else {
+            preview.style.display = 'none';
+          }
+        }
+      }
+    });
+    
+    window.lockInIntention = function() {
+      selectedIntention = document.getElementById('wf-intention-text').value.trim();
+      if (selectedIntention) {
+        localStorage.setItem('qc_first_intention', selectedIntention);
+        window.welcomeNextStep(5);
+      }
+    };
+    
+    window.selectApiMode = function(mode) {
+      apiMode = mode;
+      document.querySelectorAll('.api-option').forEach(opt => opt.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+      localStorage.setItem('qc_api_mode', mode);
+      localStorage.setItem('qc_onboarding_complete', 'true');
+      document.querySelectorAll('.welcome-step').forEach(s => s.classList.remove('active'));
+      const complete = document.getElementById('welcome-complete');
+      if (complete) complete.classList.add('active');
+      const name = userName || 'Friend';
+      const nameEl = document.getElementById('complete-name');
+      if (nameEl) nameEl.textContent = name;
+      document.querySelectorAll('.progress-step').forEach(p => { p.classList.remove('active'); p.classList.add('completed'); });
+    };
+    
+    window.enterTheChamber = function() {
+      document.getElementById('welcome-flow-overlay').classList.remove('active');
+      if (selectedIntention && typeof window.completeWelcomeFlow === 'function') {
+        window.completeWelcomeFlow(selectedIntention);
+      } else if (typeof window.closeWelcomeFlow === 'function') {
+        window.closeWelcomeFlow();
+      }
+    };
+  </script>
 
-    <!-- Step 1: Set Intention -->
-    <div id="welcome-step-1" class="welcome-step" style="display:flex;flex-direction:column;width:100%;max-width:400px;">
-      <div style="font-size:28px;text-align:center;margin-bottom:8px;">&#9670;</div>
-      <div style="font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#fff;">Welcome</div>
-      <div style="font-size:13px;color:#778;text-align:center;margin-bottom:24px;">Set your first intention to begin.</div>
-      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">INTENTION NAME</label>
-      <input id="wf-intention-title" type="text" placeholder="e.g. My Health" style="margin-bottom:12px;" />
-      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">DESCRIBE IT AS ALREADY REAL</label>
-      <textarea id="wf-intention-text" rows="3" placeholder="e.g. I am thriving in vibrant health..." style="margin-bottom:20px;resize:none;"></textarea>
-      <button class="sheet-btn primary" onclick="window.completeWelcomeStep1 &amp;&amp; window.completeWelcomeStep1()">Continue &#8250;</button>
+  <!-- ========================================
+       CINEMATIC WELCOME FLOW — 5 Step Journey
+       ======================================== -->
+  <div id="welcome-flow-overlay" class="welcome-overlay">
+    
+    <!-- Progress Constellation -->
+    <div class="welcome-progress">
+      <div class="progress-step active" data-step="1"></div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="2"></div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="3"></div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="4"></div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="5"></div>
     </div>
 
-    <!-- Step 2: Private workspace code (vault) -->
-    <div id="welcome-step-2" class="welcome-step" style="display:none;flex-direction:column;width:100%;max-width:400px;">
-      <div style="font-size:28px;text-align:center;margin-bottom:8px;">&#9632;</div>
-      <div style="font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#fff;">Private Workspace</div>
-      <div style="font-size:13px;color:#778;text-align:center;margin-bottom:24px;">Optionally add a private access code for an additional workspace. You can skip this.</div>
-      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">ACCESS CODE</label>
-      <input id="wf-vault-code" type="password" placeholder="Choose a code" style="margin-bottom:12px;" />
-      <label style="font-size:11px;color:#556;letter-spacing:.08em;margin-bottom:4px;">CONFIRM CODE</label>
-      <input id="wf-vault-confirm" type="password" placeholder="Confirm code" style="margin-bottom:20px;" />
-      <button class="sheet-btn primary" style="margin-bottom:10px;" onclick="window.completeWelcomeStep2 &amp;&amp; window.completeWelcomeStep2()">Set Code &amp; Begin</button>
-      <button class="sheet-btn ghost" onclick="window.skipWelcomeStep2 &amp;&amp; window.skipWelcomeStep2()">Skip</button>
+    <!-- STEP 1: The Threshold -->
+    <div id="welcome-step-1" class="welcome-step active">
+      <div class="welcome-crystal">
+        <div class="crystal-inner">&#9670;</div>
+        <div class="crystal-glow"></div>
+      </div>
+      <h1 class="welcome-title">The Quantum Council Awaits</h1>
+      <p class="welcome-quote">"There is a space between thinking something and it becoming real. This is that space."</p>
+      <div class="welcome-body">
+        <p>Welcome to a sacred space where intention meets manifestation. Here, you are not alone in your journey — you are held by a council of 11 specialized guides.</p>
+      </div>
+      <button class="welcome-btn primary" onclick="window.welcomeNextStep(2)">
+        <span>Enter the Council</span>
+        <span class="btn-glow"></span>
+      </button>
+      <button class="welcome-btn ghost" onclick="window.skipWelcome()">Already visited? Skip</button>
+    </div>
+
+    <!-- STEP 2: Your Name -->
+    <div id="welcome-step-2" class="welcome-step">
+      <div class="step-indicator">Step 2 of 5</div>
+      <h2 class="welcome-title">What Should We Call You?</h2>
+      <p class="welcome-subtitle">Your council speaks to you personally</p>
+      <div class="welcome-input-group">
+        <label>Your name or preferred title</label>
+        <input type="text" id="wf-user-name" placeholder="Enter your name..." maxlength="30" />
+        <div class="input-glow"></div>
+      </div>
+      <p class="welcome-hint">This name will be used by your council when they address you.</p>
+      <div class="welcome-preview" id="name-preview" style="display:none;">
+        <span class="preview-icon">&#129504;</span>
+        <span class="preview-text">The Architect might say: "<span id="preview-name"></span>, I see infinite possibilities opening up for you..."</span>
+      </div>
+      <div class="welcome-actions">
+        <button class="welcome-btn primary" onclick="window.welcomeNextStep(3)">Continue</button>
+        <button class="welcome-btn text" onclick="window.welcomePrevStep(1)">&#8592; Back</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Meet Your Council -->
+    <div id="welcome-step-3" class="welcome-step">
+      <div class="step-indicator">Step 3 of 5</div>
+      <h2 class="welcome-title"><span id="step3-greeting">Friend</span>, Meet Your Personal Council</h2>
+      <p class="welcome-subtitle">11 wise guides waiting to serve you</p>
+      <div class="council-orbs">
+        <div class="orb" data-persona="architect" onclick="window.showPersonaCard('architect')"><span class="orb-icon">&#129504;</span><span class="orb-name">Architect</span><span class="orb-glow architect-glow"></span></div>
+        <div class="orb" data-persona="visionary" onclick="window.showPersonaCard('visionary')"><span class="orb-icon">&#127756;</span><span class="orb-name">Visionary</span><span class="orb-glow visionary-glow"></span></div>
+        <div class="orb" data-persona="strategist" onclick="window.showPersonaCard('strategist')"><span class="orb-icon">&#129521;</span><span class="orb-name">Strategist</span><span class="orb-glow strategist-glow"></span></div>
+        <div class="orb" data-persona="emotional" onclick="window.showPersonaCard('emotional')"><span class="orb-icon">&#10084;</span><span class="orb-name">Emotional</span><span class="orb-glow emotional-glow"></span></div>
+        <div class="orb" data-persona="energy" onclick="window.showPersonaCard('energy')"><span class="orb-icon">&#10024;</span><span class="orb-name">Energy</span><span class="orb-glow energy-glow"></span></div>
+        <div class="orb" data-persona="questioner" onclick="window.showPersonaCard('questioner')"><span class="orb-icon">&#10067;</span><span class="orb-name">Questioner</span><span class="orb-glow questioner-glow"></span></div>
+        <div class="orb" data-persona="historian" onclick="window.showPersonaCard('historian')"><span class="orb-icon">&#128220;</span><span class="orb-name">Historian</span><span class="orb-glow historian-glow"></span></div>
+        <div class="orb" data-persona="language" onclick="window.showPersonaCard('language')"><span class="orb-icon">&#128172;</span><span class="orb-name">Language</span><span class="orb-glow language-glow"></span></div>
+        <div class="orb" data-persona="connector" onclick="window.showPersonaCard('connector')"><span class="orb-icon">&#128279;</span><span class="orb-name">Connector</span><span class="orb-glow connector-glow"></span></div>
+        <div class="orb" data-persona="commander" onclick="window.showPersonaCard('commander')"><span class="orb-icon">&#9876;</span><span class="orb-name">Commander</span><span class="orb-glow commander-glow"></span></div>
+        <div class="orb" data-persona="observer" onclick="window.showPersonaCard('observer')"><span class="orb-icon">&#128065;</span><span class="orb-name">Observer</span><span class="orb-glow observer-glow"></span></div>
+      </div>
+      <p class="welcome-hint center">Tap each orb to learn their role</p>
+      <div class="welcome-actions">
+        <button class="welcome-btn primary" onclick="window.welcomeNextStep(4)">I'm Ready</button>
+        <button class="welcome-btn text" onclick="window.welcomePrevStep(2)">&#8592; Back</button>
+      </div>
+    </div>
+
+    <!-- Persona Detail Card -->
+    <div id="persona-card" class="persona-card" style="display:none;">
+      <button class="card-close" onclick="window.hidePersonaCard()">&#10005;</button>
+      <div class="card-icon" id="card-icon">&#129504;</div>
+      <h3 class="card-name" id="card-name">The Reality Architect</h3>
+      <p class="card-role" id="card-role">Coordinates your council</p>
+      <p class="card-quote" id="card-quote">"I synthesize all wisdom into clear, locked-in realities."</p>
+      <div class="card-influences" id="card-influences">Neville Goddard &middot; Joe Dispenza</div>
+    </div>
+
+    <!-- STEP 4: Your First Intention -->
+    <div id="welcome-step-4" class="welcome-step">
+      <div class="step-indicator">Step 4 of 5</div>
+      <h2 class="welcome-title">What Reality Shall We Lock In?</h2>
+      <p class="welcome-subtitle">Speak it as ALREADY REAL</p>
+      <div class="intention-guidance">
+        <div class="guidance-item"><span class="guidance-check">&#10003;</span><span>Speak it as ALREADY REAL</span></div>
+        <div class="guidance-item"><span class="guidance-check">&#10003;</span><span>Feel it in your body as you type</span></div>
+        <div class="guidance-item"><span class="guidance-check">&#10003;</span><span>Don't hold back &mdash; this is YOURS</span></div>
+      </div>
+      <div class="welcome-input-group large">
+        <textarea id="wf-intention-text" rows="4" placeholder="I am..."></textarea>
+        <div class="input-glow gold"></div>
+      </div>
+      <div class="intention-examples">
+        <p class="examples-label">Examples:</p>
+        <button class="example-chip" onclick="window.setIntentionExample(0)">Health &amp; Vitality</button>
+        <button class="example-chip" onclick="window.setIntentionExample(1)">Abundant Business</button>
+        <button class="example-chip" onclick="window.setIntentionExample(2)">Loving Relationship</button>
+        <button class="example-chip" onclick="window.setIntentionExample(3)">Fulfilling Work</button>
+      </div>
+      <div class="welcome-actions">
+        <button class="welcome-btn primary gold" id="lock-intention-btn" onclick="window.lockInIntention()" disabled>
+          <span>&#10022;</span> Lock This In
+        </button>
+        <button class="welcome-btn text" onclick="window.welcomePrevStep(3)">&#8592; Back</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: How This Works -->
+    <div id="welcome-step-5" class="welcome-step">
+      <div class="step-indicator">Step 5 of 5</div>
+      <h2 class="welcome-title">One Last Thing, <span id="step5-name">Friend</span></h2>
+      <p class="welcome-subtitle">Your council is ready to speak</p>
+      <div class="api-explanation">
+        <div class="explanation-visual">
+          <div class="visual-node">You</div>
+          <div class="visual-arrow">&#8594;</div>
+          <div class="visual-center"><span class="center-icon">&#9670;</span><span class="center-label">Your Device</span></div>
+          <div class="visual-arrow">&#8594;</div>
+          <div class="visual-node secure">AI</div>
+        </div>
+        <p class="explanation-text">Think of this like giving each council member their own phone. Your intention stays on YOUR device — only the persona's voice is sent to AI.</p>
+      </div>
+      <div class="api-options">
+        <div class="api-option demo" onclick="window.selectApiMode('demo')">
+          <div class="option-badge">&#127873;</div>
+          <h4>Free Demo</h4>
+          <p>Try with pre-loaded credits</p>
+          <ul><li>Experience immediately</li><li>No setup required</li><li>Limited messages</li></ul>
+          <button class="option-btn">Try Now</button>
+        </div>
+        <div class="api-option custom" onclick="window.selectApiMode('custom')">
+          <div class="option-badge">&#9881;</div>
+          <h4>Custom Setup</h4>
+          <p>Use your own API keys</p>
+          <ul><li>Unlimited conversations</li><li>Choose AI models</li><li>Full control</li></ul>
+          <button class="option-btn">Set Up</button>
+        </div>
+      </div>
+      <div class="security-promise">
+        <span class="security-icon">&#128274;</span>
+        <span>Your keys are stored ONLY on your device. Never on our servers.</span>
+      </div>
+      <div class="welcome-actions">
+        <button class="welcome-btn text" onclick="window.welcomePrevStep(4)">&#8592; Back</button>
+      </div>
+    </div>
+
+    <!-- Completion Screen -->
+    <div id="welcome-complete" class="welcome-step">
+      <div class="completion-crystal">
+        <div class="crystal-formation">&#10022;</div>
+        <div class="formation-glow"></div>
+      </div>
+      <h2 class="welcome-title"><span id="complete-name">Friend</span>, Your Intention Is Locked</h2>
+      <p class="welcome-quote">The council has received your intention. They are already holding it with you.</p>
+      <div class="council-acknowledgments">
+        <div class="ack-item"><span>&#129504;</span> "This reality is noted and held."</div>
+        <div class="ack-item"><span>&#127756;</span> "I already see it unfolding..."</div>
+        <div class="ack-item"><span>&#10084;</span> "Feel the truth of this now."</div>
+      </div>
+      <button class="welcome-btn primary large" onclick="window.enterTheChamber()">Enter the Chamber</button>
     </div>
 
   </div>

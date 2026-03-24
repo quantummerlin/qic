@@ -13,6 +13,12 @@
   let vaultChatHistory = []; // chat history for vault thread
   let activeVaultIntentionId = null; // current vault thread
 
+  // Message selection mode state
+  let messageSelectionMode = false;
+  let selectedMessageIds = [];
+  let longPressTimer = null;
+  const LONG_PRESS_DURATION = 500; // ms
+
   // ----------------------------------------------------------
   // INIT
   // ----------------------------------------------------------
@@ -149,19 +155,16 @@
     // Intention edit
     document.getElementById("intention-edit-btn").addEventListener("click", openIntentionEdit);
 
-    // Clear chat
-    document.getElementById("clear-chat-btn").addEventListener("click", () => {
-      if (confirm("Clear all chat history?")) {
-        chatHistory = [];
-        if (activeIntentionId) {
-          Memory.saveLibraryChatHistory(activeIntentionId, []);
-        } else {
-          Memory.clearChatHistory();
-        }
-        document.getElementById("chat-messages").innerHTML = "";
-        showWelcome();
-      }
-    });
+    // Message selection mode
+    const editBtn = document.getElementById("edit-messages-btn");
+    const doneBtn = document.getElementById("done-messages-btn");
+    if (editBtn) editBtn.addEventListener("click", enterMessageSelectionMode);
+    if (doneBtn) doneBtn.addEventListener("click", exitMessageSelectionMode);
+    document.getElementById("selection-cancel").addEventListener("click", exitMessageSelectionMode);
+    document.getElementById("selection-share").addEventListener("click", openShareFormatSheet);
+    document.getElementById("selection-delete").addEventListener("click", deleteSelectedMessages);
+    document.getElementById("share-plain-btn").addEventListener("click", () => shareMessages('plain'));
+    document.getElementById("share-formatted-btn").addEventListener("click", () => shareMessages('formatted'));
 
     // Mode selector
     document.getElementById("mode-select").addEventListener("change", (e) => {
@@ -183,6 +186,38 @@
 
     // Start session (Architect opens)
     document.getElementById("start-session-btn").addEventListener("click", handleStartSession);
+
+    // Top three-dot kebab menu
+    const topDotsBtn = document.getElementById("top-dots-btn");
+    const topDotsMenu = document.getElementById("top-dots-menu");
+    if (topDotsBtn && topDotsMenu) {
+      topDotsBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        const isOpen = topDotsMenu.classList.contains("open");
+        closeAllContextMenus();
+        if (!isOpen) {
+          topDotsMenu.classList.add("open");
+          topDotsBtn.classList.add("open");
+        }
+      });
+    }
+    const kmenuMode = document.getElementById("kmenu-mode");
+    const kmenuEdit = document.getElementById("kmenu-edit");
+    if (kmenuMode) kmenuMode.addEventListener("click", function() { closeAllContextMenus(); toggleCouncilMode(); });
+    if (kmenuEdit) kmenuEdit.addEventListener("click", function() { closeAllContextMenus(); enterMessageSelectionMode(); });
+
+    // Close all menus on outside click
+    document.addEventListener("click", closeAllContextMenus);
+
+    // Save last-read on page hide
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden && activeIntentionId && chatHistory.length > 0) {
+        const lastMsg = chatHistory[chatHistory.length - 1];
+        if (lastMsg && lastMsg.id) {
+          Memory.setLastReadMessageId(activeIntentionId, lastMsg.id);
+        }
+      }
+    });
   }
 
   // ----------------------------------------------------------
@@ -238,9 +273,16 @@
   // ----------------------------------------------------------
   function runCouncilRound(userMessage) {
     setButtonsDisabled(true);
+    if (window.QuantumEffects) {
+      window.QuantumEffects.setCouncilState('convening');
+    }
 
     Orchestrator.runCouncil(userMessage, chatHistory, {
       onPersonaMessage: (persona, response, type) => {
+        if (window.QuantumEffects) {
+          const state = type === 'synthesis' ? 'synthesizing' : 'speaking';
+          window.QuantumEffects.setCouncilState(state);
+        }
         const msg = Memory.addMessage(chatHistory, {
           role: "persona",
           personaId: persona.id,
@@ -262,6 +304,9 @@
         updateStatus("");
         hidePhase();
         saveCurrentChat();
+        if (window.QuantumEffects) {
+          window.QuantumEffects.setCouncilState('resting');
+        }
         document.getElementById("user-input").focus();
       }
     });
@@ -272,9 +317,16 @@
   // ----------------------------------------------------------
   function runCouncilCurated(userMessage) {
     setButtonsDisabled(true);
+    if (window.QuantumEffects) {
+      window.QuantumEffects.setCouncilState('convening');
+    }
 
     Orchestrator.runCouncilCurated(userMessage, chatHistory, {
       onPersonaMessage: (persona, response, type) => {
+        if (window.QuantumEffects) {
+          const state = type === 'synthesis' ? 'synthesizing' : 'speaking';
+          window.QuantumEffects.setCouncilState(state);
+        }
         const msg = Memory.addMessage(chatHistory, {
           role: "persona",
           personaId: persona.id,
@@ -296,6 +348,9 @@
         updateStatus("");
         hidePhase();
         saveCurrentChat();
+        if (window.QuantumEffects) {
+          window.QuantumEffects.setCouncilState('resting');
+        }
         document.getElementById("user-input").focus();
       }
     });
@@ -425,12 +480,19 @@
     removeWelcome();
     setButtonsDisabled(true);
 
+    if (window.QuantumEffects) {
+      window.QuantumEffects.setCouncilState('convening');
+    }
+
     // Add a visual council meeting header
     appendCouncilMeetingHeader();
 
     Orchestrator.runCouncilConversation(chatHistory, {
       onConversationStart: () => {},
       onPersonaMessage: (persona, response, type) => {
+        if (window.QuantumEffects) {
+          window.QuantumEffects.setCouncilState('speaking');
+        }
         const msg = Memory.addMessage(chatHistory, {
           role: "persona",
           personaId: persona.id,
@@ -449,7 +511,11 @@
       onComplete: () => {
         setButtonsDisabled(false);
         updateStatus("");
-        hidePhase();        saveCurrentChat();      }
+        hidePhase();        saveCurrentChat();
+        if (window.QuantumEffects) {
+          window.QuantumEffects.setCouncilState('resting');
+        }
+      }
     });
   }
 
@@ -492,14 +558,17 @@
     Orchestrator.setCouncilMode(newMode);
 
     const btn = document.getElementById("council-mode-toggle");
+    const kmenuMode = document.getElementById("kmenu-mode");
     if (newMode === modes.CLARIFY) {
       btn.textContent = "🔍 Clarify Mode";
       btn.style.borderColor = "#443";
       btn.style.color = "#aa8";
+      if (kmenuMode) kmenuMode.textContent = "🔍 Clarify Mode";
     } else {
       btn.textContent = "✨ Embody Mode";
       btn.style.borderColor = "#333";
       btn.style.color = "#888";
+      if (kmenuMode) kmenuMode.textContent = "✨ Embody Mode";
     }
   }
 
@@ -651,6 +720,14 @@
   }
 
   function switchToIntention(id) {
+    // Save last-read position before switching away
+    if (activeIntentionId && chatHistory.length > 0) {
+      const lastMsg = chatHistory[chatHistory.length - 1];
+      if (lastMsg && lastMsg.id) {
+        Memory.setLastReadMessageId(activeIntentionId, lastMsg.id);
+      }
+    }
+
     saveCurrentChat();
     activeVaultIntentionId = null;
     vaultChatHistory = [];
@@ -759,56 +836,16 @@
   function showWelcomeFlow() {
     const overlay = document.getElementById("welcome-flow-overlay");
     if (!overlay) return;
-    overlay.style.display = "flex";
-    showWelcomeStep(1);
-  }
-
-  function showWelcomeStep(step) {
-    document.querySelectorAll(".welcome-step").forEach(s => s.style.display = "none");
-    const el = document.getElementById("welcome-step-" + step);
-    if (el) el.style.display = "flex";
-  }
-
-  async function completeWelcomeStep1() {
-    const titleEl = document.getElementById("wf-intention-title");
-    const textEl = document.getElementById("wf-intention-text");
-    const title = titleEl ? titleEl.value.trim() : "";
-    const text = textEl ? textEl.value.trim() : "";
-    if (!title || !text) {
-      updateStatus("Please fill in both fields.");
-      setTimeout(() => updateStatus(""), 2000);
-      return;
-    }
-    const entry = Memory.createLibraryIntention(title, text);
-    activeIntentionId = entry.id;
-    chatHistory = [];
-    updateIntentionDisplay();
-    showWelcomeStep(2);
-  }
-
-  async function completeWelcomeStep2() {
-    const codeEl = document.getElementById("wf-vault-code");
-    const confirmEl = document.getElementById("wf-vault-confirm");
-    const code = codeEl ? codeEl.value.trim() : "";
-    const confirm = confirmEl ? confirmEl.value.trim() : "";
-    if (code) {
-      if (code !== confirm) {
-        updateStatus("Codes do not match.");
-        setTimeout(() => updateStatus(""), 2000);
-        return;
-      }
-      await Memory.vaultSetPassword(code);
-    }
-    closeWelcomeFlow();
-  }
-
-  function skipWelcomeStep2() {
-    closeWelcomeFlow();
+    overlay.classList.add("active");
+    // Show first step
+    document.querySelectorAll(".welcome-step").forEach(s => s.classList.remove("active"));
+    const step1 = document.getElementById("welcome-step-1");
+    if (step1) step1.classList.add("active");
   }
 
   function closeWelcomeFlow() {
     const overlay = document.getElementById("welcome-flow-overlay");
-    if (overlay) overlay.style.display = "none";
+    if (overlay) overlay.classList.remove("active");
     renderChatHistory();
     updateIntentionDisplay();
     showWelcome();
@@ -821,6 +858,27 @@
         const celebrateMsg = `A new intention has been set: "${entry.text}". Welcome this intention into existence with genuine enthusiasm and your unique perspective.`;
         setTimeout(() => runCouncilRound(celebrateMsg), 300);
       }
+    }
+  }
+
+  function completeWelcomeFlow(intentionText) {
+    if (intentionText) {
+      const entry = Memory.createLibraryIntention(
+        intentionText.substring(0, 60),
+        intentionText
+      );
+      activeIntentionId = entry.id;
+      chatHistory = [];
+      updateIntentionDisplay();
+    }
+    const overlay = document.getElementById("welcome-flow-overlay");
+    if (overlay) overlay.classList.remove("active");
+    renderChatHistory();
+    showWelcome();
+
+    if (activeIntentionId && intentionText) {
+      const celebrateMsg = `A new intention has been set: "${intentionText}". Welcome this intention into existence with genuine enthusiasm and your unique perspective.`;
+      setTimeout(() => runCouncilRound(celebrateMsg), 500);
     }
   }
 
@@ -953,7 +1011,9 @@
 
     if (msg.role === "user") {
       div.className = "message user";
+      div.dataset.msgId = msg.id || "";
       div.innerHTML = `<div class="content">${escapeHtml(msg.content)}</div>`;
+      container.appendChild(div);
     } else if (msg.role === "persona") {
       const typeClass = msg.messageType === "synthesis"       ? "synthesis" :
                         msg.messageType === "session-open"    ? "session-open" :
@@ -963,6 +1023,7 @@
                         msg.personaId === "architect"         ? "architect" :
                         msg.personaId === "observer"          ? "observer" : "";
       div.className = `message persona ${typeClass}`;
+      div.dataset.msgId = msg.id || "";
 
       let lockBtn = "";
       if (msg.messageType === "synthesis") {
@@ -978,7 +1039,6 @@
       div.innerHTML = `
         <div class="persona-name">
           ${msg.personaIcon || "🔮"} ${msg.personaName || "Unknown"}
-          <span class="model-tag">${msg.model || ""}</span>
           ${ambientTag}
           ${lockBtn}
         </div>
@@ -1010,10 +1070,66 @@
         }
       }
 
+      // Per-message three-dot context menu
+      const msgDotsBtn = document.createElement("button");
+      msgDotsBtn.type = "button";
+      msgDotsBtn.className = "msg-dots-btn";
+      msgDotsBtn.innerHTML = "&#8942;";
+      msgDotsBtn.title = "Message options";
+      div.appendChild(msgDotsBtn);
+
+      const msgCtxMenu = document.createElement("div");
+      msgCtxMenu.className = "msg-context-menu";
+      const modelInfoHtml = msg.model
+        ? `<div class="dots-menu-divider"></div><div class="msg-context-info">${escapeHtml(msg.model)}</div>`
+        : "";
+      msgCtxMenu.innerHTML = `
+        <button type="button" class="msg-context-item" data-action="copy">&#128203; Copy</button>
+        <div class="dots-menu-divider"></div>
+        <button type="button" class="msg-context-item danger" data-action="delete">&#128465; Delete</button>
+        ${modelInfoHtml}
+      `;
+      div.appendChild(msgCtxMenu);
+
+      msgDotsBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        const isOpen = msgCtxMenu.classList.contains("open");
+        closeAllContextMenus();
+        if (!isOpen) {
+          const rect = msgDotsBtn.getBoundingClientRect();
+          msgCtxMenu.style.top = (rect.bottom + 4) + "px";
+          msgCtxMenu.style.right = (window.innerWidth - rect.right) + "px";
+          msgCtxMenu.classList.add("open");
+          msgDotsBtn.classList.add("open");
+        }
+      });
+
+      msgCtxMenu.querySelector('[data-action="copy"]').addEventListener("click", function(e) {
+        e.stopPropagation();
+        navigator.clipboard.writeText(msg.content).then(function() {
+          updateStatus("Copied.");
+          setTimeout(function() { updateStatus(""); }, 1500);
+        });
+        closeAllContextMenus();
+      });
+
+      msgCtxMenu.querySelector('[data-action="delete"]').addEventListener("click", function(e) {
+        e.stopPropagation();
+        const msgId = msg.id;
+        const idx = chatHistory.findIndex(function(m) { return m.id === msgId; });
+        if (idx !== -1) {
+          chatHistory.splice(idx, 1);
+          saveCurrentChat();
+          div.remove();
+        }
+        closeAllContextMenus();
+      });
+
       container.appendChild(div);
     } else if (msg.role === "system") {
       // System messages (intention updates, etc.)
       div.className = `message system ${msg.messageType || ""}`;
+      div.dataset.msgId = msg.id || "";
       div.innerHTML = `<div class="content">${escapeHtml(msg.content)}</div>`;
       container.appendChild(div);
     }
@@ -1024,6 +1140,19 @@
     container.innerHTML = "";
     for (const msg of chatHistory) {
       appendMessageToUI(msg);
+    }
+
+    // Insert unread divider if we have a last-read position and messages after it
+    const lastReadId = activeIntentionId ? Memory.getLastReadMessageId(activeIntentionId) : null;
+    if (lastReadId) {
+      const lastReadEl = container.querySelector(`[data-msg-id="${lastReadId}"]`);
+      if (lastReadEl && lastReadEl !== container.lastElementChild) {
+        const divider = document.createElement("div");
+        divider.className = "unread-divider";
+        divider.id = "unread-divider";
+        divider.innerHTML = "<span>New Messages</span>";
+        lastReadEl.insertAdjacentElement("afterend", divider);
+      }
     }
   }
 
@@ -1065,7 +1194,14 @@
   function scrollToBottom() {
     const chat = document.getElementById("chat-area");
     requestAnimationFrame(() => {
-      chat.scrollTop = chat.scrollHeight;
+      const divider = document.getElementById("unread-divider");
+      if (divider) {
+        const chatRect = chat.getBoundingClientRect();
+        const dividerRect = divider.getBoundingClientRect();
+        chat.scrollTop += dividerRect.top - chatRect.top - 60;
+      } else {
+        chat.scrollTop = chat.scrollHeight;
+      }
     });
   }
 
@@ -1209,8 +1345,203 @@
   }
 
   // ----------------------------------------------------------
-  // BOOT
+  // MESSAGE SELECTION MODE
   // ----------------------------------------------------------
+  function enterMessageSelectionMode() {
+    messageSelectionMode = true;
+    selectedMessageIds = [];
+
+    const editBtn = document.getElementById("edit-messages-btn");
+    const doneBtn = document.getElementById("done-messages-btn");
+    if (editBtn) editBtn.classList.add("hidden");
+    if (doneBtn) doneBtn.classList.remove("hidden");
+    document.getElementById("message-selection-toolbar").classList.remove("hidden");
+
+    document.querySelectorAll("#chat-messages .message").forEach((msg, index) => {
+      msg.classList.add("selectable");
+      msg.dataset.messageIndex = index;
+
+      const checkbox = document.createElement("div");
+      checkbox.className = "message-checkbox";
+      msg.appendChild(checkbox);
+
+      msg.addEventListener("click", handleMessageClick);
+      msg.addEventListener("touchstart", handleTouchStart, { passive: true });
+      msg.addEventListener("touchend", handleTouchEnd);
+      msg.addEventListener("mousedown", handleMouseDown);
+      msg.addEventListener("mouseup", handleMouseUp);
+      msg.addEventListener("mouseleave", handleMouseLeave);
+    });
+
+    updateSelectionUI();
+  }
+
+  function exitMessageSelectionMode() {
+    messageSelectionMode = false;
+    selectedMessageIds = [];
+
+    const editBtn = document.getElementById("edit-messages-btn");
+    const doneBtn = document.getElementById("done-messages-btn");
+    if (editBtn) editBtn.classList.remove("hidden");
+    if (doneBtn) doneBtn.classList.add("hidden");
+    document.getElementById("message-selection-toolbar").classList.add("hidden");
+
+    document.querySelectorAll("#chat-messages .message").forEach(msg => {
+      msg.classList.remove("selectable", "selected", "long-pressing");
+      delete msg.dataset.messageIndex;
+
+      const checkbox = msg.querySelector(".message-checkbox");
+      if (checkbox) checkbox.remove();
+
+      msg.removeEventListener("click", handleMessageClick);
+      msg.removeEventListener("touchstart", handleTouchStart);
+      msg.removeEventListener("touchend", handleTouchEnd);
+      msg.removeEventListener("mousedown", handleMouseDown);
+      msg.removeEventListener("mouseup", handleMouseUp);
+      msg.removeEventListener("mouseleave", handleMouseLeave);
+    });
+
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function handleMessageClick(e) {
+    if (!messageSelectionMode) return;
+    const msg = e.currentTarget;
+    const index = parseInt(msg.dataset.messageIndex);
+    toggleMessageSelection(index, msg);
+  }
+
+  function handleTouchStart(e) {
+    if (!messageSelectionMode) return;
+    const msg = e.currentTarget;
+    msg.classList.add("long-pressing");
+    longPressTimer = setTimeout(() => {
+      const index = parseInt(msg.dataset.messageIndex);
+      if (!selectedMessageIds.includes(index)) toggleMessageSelection(index, msg);
+      msg.classList.remove("long-pressing");
+    }, LONG_PRESS_DURATION);
+  }
+
+  function handleTouchEnd(e) {
+    if (!messageSelectionMode) return;
+    e.currentTarget.classList.remove("long-pressing");
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function handleMouseDown(e) {
+    if (!messageSelectionMode) return;
+    const msg = e.currentTarget;
+    msg.classList.add("long-pressing");
+    longPressTimer = setTimeout(() => {
+      const index = parseInt(msg.dataset.messageIndex);
+      if (!selectedMessageIds.includes(index)) toggleMessageSelection(index, msg);
+      msg.classList.remove("long-pressing");
+    }, LONG_PRESS_DURATION);
+  }
+
+  function handleMouseUp(e) {
+    if (!messageSelectionMode) return;
+    e.currentTarget.classList.remove("long-pressing");
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function handleMouseLeave(e) {
+    if (!messageSelectionMode) return;
+    e.currentTarget.classList.remove("long-pressing");
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function toggleMessageSelection(index, msgElement) {
+    const idIndex = selectedMessageIds.indexOf(index);
+    if (idIndex === -1) {
+      selectedMessageIds.push(index);
+      msgElement.classList.add("selected");
+    } else {
+      selectedMessageIds.splice(idIndex, 1);
+      msgElement.classList.remove("selected");
+    }
+    updateSelectionUI();
+  }
+
+  function updateSelectionUI() {
+    const count = selectedMessageIds.length;
+    const shareBtn = document.getElementById("selection-share");
+    const deleteBtn = document.getElementById("selection-delete");
+    const shareCount = document.getElementById("share-count");
+    const deleteCount = document.getElementById("delete-count");
+    shareBtn.disabled = count === 0;
+    deleteBtn.disabled = count === 0;
+    shareCount.textContent = count;
+    deleteCount.textContent = count;
+  }
+
+  function openShareFormatSheet() {
+    document.getElementById("share-format-sheet").classList.add("active");
+  }
+
+  function shareMessages(format) {
+    if (selectedMessageIds.length === 0) return;
+    const sortedIndices = [...selectedMessageIds].sort((a, b) => a - b);
+    const selectedMessages = sortedIndices.map(i => chatHistory[i]).filter(Boolean);
+    let shareText = "";
+    if (format === "plain") {
+      shareText = selectedMessages.map(msg => {
+        const timestamp = new Date(msg.timestamp || Date.now()).toLocaleString();
+        if (msg.role === "user") return `[${timestamp}] You: ${msg.content}`;
+        if (msg.role === "persona") return `[${timestamp}] ${msg.personaName || "Council"}: ${msg.content}`;
+        return `[${timestamp}] ${msg.content}`;
+      }).join("\n\n");
+    } else {
+      shareText = selectedMessages.map(msg => {
+        const timestamp = new Date(msg.timestamp || Date.now()).toLocaleString();
+        if (msg.role === "user") return `[${timestamp}] You:\n${msg.content}`;
+        if (msg.role === "persona") return `[${timestamp}] ${msg.personaIcon || "🔮"} ${msg.personaName || "Council"}:\n${msg.content}`;
+        return `[${timestamp}] ${msg.content}`;
+      }).join("\n\n---\n\n");
+    }
+    navigator.clipboard.writeText(shareText).then(() => {
+      updateStatus(`Copied ${selectedMessageIds.length} message(s) to clipboard`);
+      setTimeout(() => updateStatus(""), 2000);
+      closeSheet("share-format-sheet");
+      exitMessageSelectionMode();
+    }).catch(() => {
+      alert("Failed to copy to clipboard. Please try again.");
+    });
+  }
+
+  function deleteSelectedMessages() {
+    if (selectedMessageIds.length === 0) return;
+    const count = selectedMessageIds.length;
+    if (!confirm(`Delete ${count} message${count === 1 ? "" : "s"}?`)) return;
+    const sortedIndices = [...selectedMessageIds].sort((a, b) => b - a);
+    sortedIndices.forEach(index => { chatHistory.splice(index, 1); });
+    saveCurrentChat();
+    renderChatHistory();
+    exitMessageSelectionMode();
+    updateStatus(`Deleted ${count} message${count === 1 ? "" : "s"}`);
+    setTimeout(() => updateStatus(""), 2000);
+  }
+
+  function closeSheet(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("active");
+  }
+
+  // ----------------------------------------------------------
+  // CLOSE ALL CONTEXT MENUS
+  // ----------------------------------------------------------
+  function closeAllContextMenus() {
+    document.querySelectorAll(".msg-context-menu.open").forEach(function(m) { m.classList.remove("open"); });
+    document.querySelectorAll(".msg-dots-btn.open").forEach(function(b) { b.classList.remove("open"); });
+    const topMenu = document.getElementById("top-dots-menu");
+    const topBtn  = document.getElementById("top-dots-btn");
+    if (topMenu) topMenu.classList.remove("open");
+    if (topBtn)  topBtn.classList.remove("open");
+  }
+
   document.addEventListener("DOMContentLoaded", init);
 
   // Expose functions needed by inline HTML scripts
@@ -1218,7 +1549,6 @@
   window.openIntentionJournal = openIntentionJournal;
   window.openLibrarySheet = openLibrarySheet;
   window.closeLibrarySheet = closeLibrarySheet;
-  window.completeWelcomeStep1 = completeWelcomeStep1;
-  window.completeWelcomeStep2 = completeWelcomeStep2;
-  window.skipWelcomeStep2 = skipWelcomeStep2;
+  window.closeWelcomeFlow = closeWelcomeFlow;
+  window.completeWelcomeFlow = completeWelcomeFlow;
 })();
