@@ -67,7 +67,7 @@ const Orchestrator = (function () {
     if (isRunning) return;
     isRunning = true;
 
-    const personas = window.PERSONAS;
+    const personas = window.getActivePersonas ? window.getActivePersonas() : window.PERSONAS;
     const architect = personas.find(p => p.isArchitect);
     const council = personas.filter(p => !p.isArchitect);
     const intention = window.Memory.loadIntention();
@@ -139,7 +139,7 @@ const Orchestrator = (function () {
     if (isRunning) return;
     isRunning = true;
 
-    const personas = window.PERSONAS;
+    const personas = window.getActivePersonas ? window.getActivePersonas() : window.PERSONAS;
     const architect = personas.find(p => p.isArchitect);
     const council = personas.filter(p => !p.isArchitect);
     const intention = window.Memory.loadIntention();

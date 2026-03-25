@@ -3,7 +3,7 @@
 // Cache-first for app shell, network-only for API calls
 // ============================================================
 
-const CACHE_NAME = "qc-v7";
+const CACHE_NAME = "qc-v8";
 const SHELL = [
   "/",
   "/index.html",

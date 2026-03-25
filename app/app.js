@@ -1272,13 +1272,19 @@
     const savedToken = localStorage.getItem("qc_proxy_token") || "";
     const workerBlock = document.createElement("div");
     workerBlock.style.cssText = "border:1px solid #336;padding:14px;margin-bottom:16px;background:#0d0d1a;border-radius:2px;";
+    const savedOrKey = localStorage.getItem("qc_openrouter_key") || "";
     workerBlock.innerHTML = `
-      <div style="font-size:13px;color:#88a;margin-bottom:10px;">🔗 Worker Connection</div>
-      <label>Worker URL</label>
+      <div style="font-size:13px;color:#88a;margin-bottom:10px;">🔑 API Connection</div>
+      <label>OpenRouter API Key <span style="color:#555;font-size:11px">(direct — no worker needed)</span></label>
+      <input id="or-key-input" type="password"
+        value="${escapeHtml(savedOrKey)}"
+        placeholder="sk-or-v1-..." autocomplete="off" />
+      <div style="margin:12px 0;border-top:1px solid #222;"></div>
+      <label>Worker URL <span style="color:#555;font-size:11px">(optional — advanced setup)</span></label>
       <input id="worker-url-input" type="text"
         value="${escapeHtml(savedUrl)}"
         placeholder="https://quantum-council-proxy.YOUR-ID.workers.dev" />
-      <label>Access Token</label>
+      <label>Worker Access Token</label>
       <input id="worker-token-input" type="password"
         value="${escapeHtml(savedToken)}"
         placeholder="Your secret access token" />
@@ -1310,9 +1316,12 @@
   }
 
   function saveSettings() {
-    // Save Worker connection details
+    // Save API connection details
+    const orKeyEl       = document.getElementById("or-key-input");
     const workerUrlEl   = document.getElementById("worker-url-input");
     const workerTokenEl = document.getElementById("worker-token-input");
+    if (orKeyEl && orKeyEl.value.trim())       localStorage.setItem("qc_openrouter_key", orKeyEl.value.trim());
+    else if (orKeyEl && !orKeyEl.value.trim()) localStorage.removeItem("qc_openrouter_key");
     if (workerUrlEl)   localStorage.setItem("qc_proxy_url",   workerUrlEl.value.trim());
     if (workerTokenEl && workerTokenEl.value.trim()) {
       localStorage.setItem("qc_proxy_token", workerTokenEl.value.trim());
@@ -1542,6 +1551,21 @@
     if (topBtn)  topBtn.classList.remove("open");
   }
 
+  // ----------------------------------------------------------
+  // ACTIVE PERSONAS FILTER
+  // ----------------------------------------------------------
+  function getActivePersonas() {
+    const stored = localStorage.getItem("qc_active_personas");
+    if (!stored) return PERSONAS; // default: all active
+    try {
+      const ids = JSON.parse(stored);
+      // Always include the Architect; filter others by saved list
+      return PERSONAS.filter(p => p.isArchitect || ids.includes(p.id));
+    } catch (e) {
+      return PERSONAS;
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", init);
 
   // Expose functions needed by inline HTML scripts
@@ -1551,4 +1575,5 @@
   window.closeLibrarySheet = closeLibrarySheet;
   window.closeWelcomeFlow = closeWelcomeFlow;
   window.completeWelcomeFlow = completeWelcomeFlow;
+  window.getActivePersonas = getActivePersonas;
 })();

@@ -1,12 +1,18 @@
 // ============================================================
-// API LAYER — Proxied through Cloudflare Worker
-// OpenRouter API keys live in the Worker as secrets.
-// The browser only needs the Worker URL + a personal access token.
+// API LAYER
+// Two modes:
+//   1. Cloudflare Worker proxy — Worker holds the OpenRouter key.
+//      Configure: Worker URL + personal access token in Settings.
+//   2. Direct OpenRouter — user pastes their own key.
+//      Configure: OpenRouter API key in Settings or welcome flow.
+//
+// Priority: Worker proxy (if configured) > Direct key
 // ============================================================
 
-// localStorage keys for Worker connection config
+// localStorage keys
 const QC_PROXY_URL_KEY   = "qc_proxy_url";
 const QC_PROXY_TOKEN_KEY = "qc_proxy_token";
+const QC_OR_KEY          = "qc_openrouter_key";
 
 function getProxyConfig() {
   return {
@@ -16,55 +22,99 @@ function getProxyConfig() {
 }
 
 /**
- * Call a single persona via the Cloudflare Worker proxy.
- * The Worker holds the actual OpenRouter API key server-side.
- *
- * @param {Object} persona - Persona config object
- * @param {Array} messages - Array of {role, content} messages
- * @param {Object} options - Optional overrides (temperature, max_tokens)
- * @returns {string} The persona's response text
+ * Call a single persona — tries Worker proxy first, then direct OpenRouter key.
  */
 async function callPersona(persona, messages, options = {}) {
   const { url, token } = getProxyConfig();
 
-  if (!url || !token) {
-    return `[${persona.shortName}: Worker URL or Access Token not set. Open ⚙ Settings and configure them.]`;
+  // --- Mode 1: Worker proxy ---
+  if (url && token) {
+    const payload = {
+      personaId:    persona.id,
+      systemPrompt: persona.systemPrompt,
+      messages,
+      model:        persona.model,
+      temperature:  options.temperature ?? 0.85,
+      max_tokens:   options.max_tokens  ?? 600
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type":  "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData?.error || response.statusText || "Unknown error";
+        console.error(`[${persona.shortName}] Worker error ${response.status}:`, errMsg);
+        return `[${persona.shortName} encountered an error: ${response.status} — ${errMsg}]`;
+      }
+
+      const data = await response.json();
+      if (data.choices && data.choices.length > 0) {
+        return data.choices[0].message.content.trim();
+      }
+      console.error(`[${persona.shortName}] No choices in response:`, data);
+      return `[${persona.shortName} returned an empty response.]`;
+    } catch (err) {
+      console.error(`[${persona.shortName}] Network error:`, err);
+      return `[${persona.shortName} network error: ${err.message}]`;
+    }
   }
 
+  // --- Mode 2: Direct OpenRouter key ---
+  const directKey = localStorage.getItem(QC_OR_KEY) || persona.apiKey || "";
+  if (directKey) {
+    return await callPersonaDirect(persona, messages, options, directKey);
+  }
+
+  return `[${persona.shortName}: No API connection configured. Open ⚙ Settings to add your OpenRouter key or Worker URL.]`;
+}
+
+/**
+ * Call OpenRouter directly using a user-supplied API key (no Worker needed).
+ */
+async function callPersonaDirect(persona, messages, options, apiKey) {
   const payload = {
-    personaId:    persona.id,
-    systemPrompt: persona.systemPrompt,
-    messages,
-    model:        persona.model,
-    temperature:  options.temperature ?? 0.85,
-    max_tokens:   options.max_tokens  ?? 600
+    model: persona.model,
+    messages: [
+      { role: "system", content: persona.systemPrompt },
+      ...messages
+    ],
+    temperature: options.temperature ?? 0.85,
+    max_tokens:  options.max_tokens  ?? 600
   };
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type":  "application/json"
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type":  "application/json",
+        "HTTP-Referer":  window.location.origin,
+        "X-Title":       "Quantum Council"
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      const errMsg = errData?.error || response.statusText || "Unknown error";
-      console.error(`[${persona.shortName}] Worker error ${response.status}:`, errMsg);
+      const errMsg = errData?.error?.message || errData?.error || response.statusText || "Unknown error";
+      console.error(`[${persona.shortName}] OpenRouter error ${response.status}:`, errMsg);
       return `[${persona.shortName} encountered an error: ${response.status} — ${errMsg}]`;
     }
 
     const data = await response.json();
-
     if (data.choices && data.choices.length > 0) {
       return data.choices[0].message.content.trim();
-    } else {
-      console.error(`[${persona.shortName}] No choices in response:`, data);
-      return `[${persona.shortName} returned an empty response.]`;
     }
+    console.error(`[${persona.shortName}] No choices in response:`, data);
+    return `[${persona.shortName} returned an empty response.]`;
   } catch (err) {
     console.error(`[${persona.shortName}] Network error:`, err);
     return `[${persona.shortName} network error: ${err.message}]`;

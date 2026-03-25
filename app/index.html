@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=7" />
-  <link rel="stylesheet" href="welcome.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="welcome.css?v=2" />
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -205,7 +205,7 @@
       });
     }
   </script>
-  <script src="effects.js?v=1"></script>
+  <script src="effects.js?v=2"></script>
   <script src="memory.js?v=7"></script>
   <script src="personas.js?v=7"></script>
   <script src="api.js?v=7"></script>
@@ -286,16 +286,39 @@
         document.querySelector('.progress-step[data-step="' + i + '"]').classList.add('completed');
       }
       currentWelcomeStep = step;
-      if (step === 3 || step === 5) {
+      if (step === 3) {
         const name = document.getElementById('wf-user-name').value || 'Friend';
         const el3 = document.getElementById('step3-greeting');
-        const el5 = document.getElementById('step5-name');
         if (el3) el3.textContent = name;
-        if (el5) el5.textContent = name;
-      }
-      if (step === 3) {
         userName = document.getElementById('wf-user-name').value;
         if (userName) localStorage.setItem('qc_user_name', userName);
+      }
+      if (step === 5) {
+        const grid = document.getElementById('wf-persona-toggles');
+        if (grid && !grid.children.length) {
+          const shortNames = {
+            architect: 'Architect', visionary: 'Visionary', strategist: 'Strategist',
+            emotional: 'Emotional', energy: 'Energy', questioner: 'Questioner',
+            historian: 'Historian', language: 'Language', connector: 'Connector',
+            commander: 'Commander', observer: 'Observer'
+          };
+          Object.entries(personaData).forEach(function([id, data]) {
+            const btn = document.createElement('button');
+            btn.className = 'persona-toggle active';
+            btn.dataset.id = id;
+            btn.innerHTML = '<span class="ptoggle-icon">' + data.icon + '</span><span class="ptoggle-name">' + (shortNames[id] || id) + '</span><span class="ptoggle-check">✓</span>';
+            btn.addEventListener('click', function() {
+              btn.classList.toggle('active');
+              window.updateActivateBtn();
+            });
+            grid.appendChild(btn);
+          });
+        }
+        window.updateActivateBtn();
+        // Pre-fill key if already saved
+        const savedKey = localStorage.getItem('qc_openrouter_key') || '';
+        const keyInput = document.getElementById('wf-api-key');
+        if (keyInput && savedKey) keyInput.value = savedKey;
       }
     };
     
@@ -355,20 +378,61 @@
         window.welcomeNextStep(5);
       }
     };
-    
-    window.selectApiMode = function(mode) {
-      apiMode = mode;
-      document.querySelectorAll('.api-option').forEach(opt => opt.classList.remove('selected'));
-      event.currentTarget.classList.add('selected');
-      localStorage.setItem('qc_api_mode', mode);
+
+    window.onApiKeyInput = function() {
+      const key = document.getElementById('wf-api-key').value.trim();
+      const btn = document.getElementById('activate-council-btn');
+      if (btn) btn.classList.toggle('has-key', key.length > 0);
+    };
+
+    window.wfToggleAll = function() {
+      const toggles = document.querySelectorAll('#wf-persona-toggles .persona-toggle');
+      const allActive = [...toggles].every(t => t.classList.contains('active'));
+      toggles.forEach(t => t.classList[allActive ? 'remove' : 'add']('active'));
+      window.updateActivateBtn();
+    };
+
+    window.updateActivateBtn = function() {
+      const count = document.querySelectorAll('#wf-persona-toggles .persona-toggle.active').length;
+      const label = document.getElementById('activate-btn-label');
+      if (label) label.textContent = count > 0
+        ? 'Activate ' + count + ' Persona' + (count === 1 ? '' : 's')
+        : 'Continue Without API';
+    };
+
+    window.activateCouncil = function() {
+      const key = document.getElementById('wf-api-key').value.trim();
+      if (key) localStorage.setItem('qc_openrouter_key', key);
+      const activePersonas = [];
+      document.querySelectorAll('#wf-persona-toggles .persona-toggle.active').forEach(function(el) {
+        activePersonas.push(el.dataset.id);
+      });
+      if (activePersonas.length > 0) {
+        localStorage.setItem('qc_active_personas', JSON.stringify(activePersonas));
+      }
       localStorage.setItem('qc_onboarding_complete', 'true');
-      document.querySelectorAll('.welcome-step').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.welcome-step').forEach(function(s) { s.classList.remove('active'); });
       const complete = document.getElementById('welcome-complete');
       if (complete) complete.classList.add('active');
       const name = userName || 'Friend';
       const nameEl = document.getElementById('complete-name');
       if (nameEl) nameEl.textContent = name;
-      document.querySelectorAll('.progress-step').forEach(p => { p.classList.remove('active'); p.classList.add('completed'); });
+      document.querySelectorAll('.progress-step').forEach(function(p) {
+        p.classList.remove('active'); p.classList.add('completed');
+      });
+    };
+
+    window.skipApiSetup = function() {
+      localStorage.setItem('qc_onboarding_complete', 'true');
+      document.querySelectorAll('.welcome-step').forEach(function(s) { s.classList.remove('active'); });
+      const complete = document.getElementById('welcome-complete');
+      if (complete) complete.classList.add('active');
+      const name = userName || 'Friend';
+      const nameEl = document.getElementById('complete-name');
+      if (nameEl) nameEl.textContent = name;
+      document.querySelectorAll('.progress-step').forEach(function(p) {
+        p.classList.remove('active'); p.classList.add('completed');
+      });
     };
     
     window.enterTheChamber = function() {
@@ -502,43 +566,46 @@
       </div>
     </div>
 
-    <!-- STEP 5: How This Works -->
+    <!-- STEP 5: Activate Your Council -->
     <div id="welcome-step-5" class="welcome-step">
       <div class="step-indicator">Step 5 of 5</div>
-      <h2 class="welcome-title">One Last Thing, <span id="step5-name">Friend</span></h2>
-      <p class="welcome-subtitle">Your council is ready to speak</p>
-      <div class="api-explanation">
-        <div class="explanation-visual">
-          <div class="visual-node">You</div>
-          <div class="visual-arrow">&#8594;</div>
-          <div class="visual-center"><span class="center-icon">&#9670;</span><span class="center-label">Your Device</span></div>
-          <div class="visual-arrow">&#8594;</div>
-          <div class="visual-node secure">AI</div>
-        </div>
-        <p class="explanation-text">Think of this like giving each council member their own phone. Your intention stays on YOUR device — only the persona's voice is sent to AI.</p>
+      <h2 class="welcome-title">Activate Your Council</h2>
+      <p class="welcome-subtitle">Each member uses an AI model to speak — choose who you want active</p>
+
+      <!-- How-to guide -->
+      <div class="api-setup-guide">
+        <div class="guide-header">&#127381; Get a free OpenRouter key in 60 seconds:</div>
+        <ol class="guide-steps">
+          <li>Go to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="guide-link">openrouter.ai/keys &#8599;</a></li>
+          <li>Create a free account (no credit card needed)</li>
+          <li>Click <strong>Create Key</strong> &rarr; copy it</li>
+          <li>Paste it below &darr;</li>
+        </ol>
       </div>
-      <div class="api-options">
-        <div class="api-option demo" onclick="window.selectApiMode('demo')">
-          <div class="option-badge">&#127873;</div>
-          <h4>Free Demo</h4>
-          <p>Try with pre-loaded credits</p>
-          <ul><li>Experience immediately</li><li>No setup required</li><li>Limited messages</li></ul>
-          <button class="option-btn">Try Now</button>
-        </div>
-        <div class="api-option custom" onclick="window.selectApiMode('custom')">
-          <div class="option-badge">&#9881;</div>
-          <h4>Custom Setup</h4>
-          <p>Use your own API keys</p>
-          <ul><li>Unlimited conversations</li><li>Choose AI models</li><li>Full control</li></ul>
-          <button class="option-btn">Set Up</button>
-        </div>
+
+      <!-- Key input -->
+      <div class="welcome-input-group">
+        <label>Your OpenRouter API Key</label>
+        <input type="password" id="wf-api-key" placeholder="sk-or-v1-..." autocomplete="off" oninput="window.onApiKeyInput()" />
+        <div class="input-glow"></div>
       </div>
-      <div class="security-promise">
-        <span class="security-icon">&#128274;</span>
-        <span>Your keys are stored ONLY on your device. Never on our servers.</span>
+      <p class="key-security-note"><span>&#128274;</span> Stored only on your device &mdash; never sent to our servers.</p>
+
+      <!-- Persona activations -->
+      <div class="activations-section">
+        <div class="activations-header">
+          <span>Which personas should be active?</span>
+          <button class="toggle-all-btn" onclick="window.wfToggleAll()">Toggle All</button>
+        </div>
+        <div class="persona-toggle-grid" id="wf-persona-toggles"></div>
       </div>
+
       <div class="welcome-actions">
+        <button class="welcome-btn primary" id="activate-council-btn" onclick="window.activateCouncil()">
+          <span id="activate-btn-label">Activate Council</span>
+        </button>
         <button class="welcome-btn text" onclick="window.welcomePrevStep(4)">&#8592; Back</button>
+        <button class="welcome-btn ghost small" onclick="window.skipApiSetup()">Set up later in Settings &#8599;</button>
       </div>
     </div>
 
