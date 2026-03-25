@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="styles.css?v=8" />
-  <link rel="stylesheet" href="welcome.css?v=2" />
+  <link rel="stylesheet" href="welcome.css?v=3" />
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -315,10 +315,19 @@
           });
         }
         window.updateActivateBtn();
-        // Pre-fill key if already saved
+        // Pre-fill saved connection details
         const savedKey = localStorage.getItem('qc_openrouter_key') || '';
+        const savedWUrl = localStorage.getItem('qc_proxy_url') || '';
+        const savedWTok = localStorage.getItem('qc_proxy_token') || '';
         const keyInput = document.getElementById('wf-api-key');
+        const wUrlInput = document.getElementById('wf-worker-url');
+        const wTokInput = document.getElementById('wf-worker-token');
         if (keyInput && savedKey) keyInput.value = savedKey;
+        if (wUrlInput && savedWUrl) wUrlInput.value = savedWUrl;
+        if (wTokInput && savedWTok) wTokInput.value = savedWTok;
+        // Auto-switch to worker tab if worker is configured but no direct key
+        if (!savedKey && (savedWUrl || savedWTok)) window.wfSetMode('worker');
+        else window.onApiKeyInput();
       }
     };
     
@@ -381,8 +390,20 @@
 
     window.onApiKeyInput = function() {
       const key = document.getElementById('wf-api-key').value.trim();
+      const wUrl = document.getElementById('wf-worker-url') ? document.getElementById('wf-worker-url').value.trim() : '';
+      const wTok = document.getElementById('wf-worker-token') ? document.getElementById('wf-worker-token').value.trim() : '';
+      const mode = document.getElementById('wf-conn-direct') && document.getElementById('wf-conn-direct').classList.contains('active') ? 'direct' : 'worker';
+      const hasInput = mode === 'direct' ? key.length > 0 : (wUrl.length > 0 && wTok.length > 0);
       const btn = document.getElementById('activate-council-btn');
-      if (btn) btn.classList.toggle('has-key', key.length > 0);
+      if (btn) btn.classList.toggle('has-key', hasInput);
+    };
+
+    window.wfSetMode = function(mode) {
+      document.getElementById('wf-conn-direct').classList.toggle('active', mode === 'direct');
+      document.getElementById('wf-conn-worker').classList.toggle('active', mode === 'worker');
+      document.getElementById('wf-panel-direct').style.display = mode === 'direct' ? '' : 'none';
+      document.getElementById('wf-panel-worker').style.display = mode === 'worker' ? '' : 'none';
+      window.onApiKeyInput();
     };
 
     window.wfToggleAll = function() {
@@ -401,8 +422,16 @@
     };
 
     window.activateCouncil = function() {
-      const key = document.getElementById('wf-api-key').value.trim();
-      if (key) localStorage.setItem('qc_openrouter_key', key);
+      const mode = document.getElementById('wf-conn-direct') && document.getElementById('wf-conn-direct').classList.contains('active') ? 'direct' : 'worker';
+      if (mode === 'direct') {
+        const key = document.getElementById('wf-api-key').value.trim();
+        if (key) localStorage.setItem('qc_openrouter_key', key);
+      } else {
+        const wUrl = document.getElementById('wf-worker-url').value.trim();
+        const wTok = document.getElementById('wf-worker-token').value.trim();
+        if (wUrl) localStorage.setItem('qc_proxy_url', wUrl);
+        if (wTok) localStorage.setItem('qc_proxy_token', wTok);
+      }
       const activePersonas = [];
       document.querySelectorAll('#wf-persona-toggles .persona-toggle.active').forEach(function(el) {
         activePersonas.push(el.dataset.id);
@@ -570,25 +599,54 @@
     <div id="welcome-step-5" class="welcome-step">
       <div class="step-indicator">Step 5 of 5</div>
       <h2 class="welcome-title">Activate Your Council</h2>
-      <p class="welcome-subtitle">Each member uses an AI model to speak — choose who you want active</p>
+      <p class="welcome-subtitle">Each member uses an AI model to speak &mdash; choose who you want active</p>
 
-      <!-- How-to guide -->
-      <div class="api-setup-guide">
-        <div class="guide-header">&#127381; Get a free OpenRouter key in 60 seconds:</div>
-        <ol class="guide-steps">
-          <li>Go to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="guide-link">openrouter.ai/keys &#8599;</a></li>
-          <li>Create a free account (no credit card needed)</li>
-          <li>Click <strong>Create Key</strong> &rarr; copy it</li>
-          <li>Paste it below &darr;</li>
-        </ol>
+      <!-- Connection mode toggle -->
+      <div class="conn-mode-toggle">
+        <button id="wf-conn-direct" class="conn-mode-btn active" onclick="window.wfSetMode('direct')">&#128273; Direct API Key</button>
+        <button id="wf-conn-worker" class="conn-mode-btn" onclick="window.wfSetMode('worker')">&#9729; My Worker</button>
       </div>
 
-      <!-- Key input -->
-      <div class="welcome-input-group">
-        <label>Your OpenRouter API Key</label>
-        <input type="password" id="wf-api-key" placeholder="sk-or-v1-..." autocomplete="off" oninput="window.onApiKeyInput()" />
-        <div class="input-glow"></div>
+      <!-- Panel: Direct OpenRouter Key -->
+      <div id="wf-panel-direct">
+        <div class="api-setup-guide">
+          <div class="guide-header">&#127381; Get a free OpenRouter key in 60 seconds:</div>
+          <ol class="guide-steps">
+            <li>Go to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="guide-link">openrouter.ai/keys &#8599;</a></li>
+            <li>Create a free account (no credit card needed)</li>
+            <li>Click <strong>Create Key</strong> &rarr; copy it</li>
+            <li>Paste it below &darr;</li>
+          </ol>
+        </div>
+        <div class="welcome-input-group">
+          <label>Your OpenRouter API Key</label>
+          <input type="password" id="wf-api-key" placeholder="sk-or-v1-..." autocomplete="off" oninput="window.onApiKeyInput()" />
+          <div class="input-glow"></div>
+        </div>
       </div>
+
+      <!-- Panel: Worker Proxy -->
+      <div id="wf-panel-worker" style="display:none">
+        <div class="api-setup-guide">
+          <div class="guide-header">&#9729; Connect your Cloudflare Worker:</div>
+          <ol class="guide-steps">
+            <li>Deploy the <code class="guide-code">worker/</code> folder to Cloudflare (see README)</li>
+            <li>Copy your Worker URL from the Cloudflare dashboard</li>
+            <li>Enter the Worker URL and access token below</li>
+          </ol>
+        </div>
+        <div class="welcome-input-group">
+          <label>Worker URL</label>
+          <input type="text" id="wf-worker-url" placeholder="https://quantum-council-proxy.YOUR-ID.workers.dev" autocomplete="off" oninput="window.onApiKeyInput()" />
+          <div class="input-glow"></div>
+        </div>
+        <div class="welcome-input-group">
+          <label>Access Token</label>
+          <input type="password" id="wf-worker-token" placeholder="Your secret access token" autocomplete="off" oninput="window.onApiKeyInput()" />
+          <div class="input-glow"></div>
+        </div>
+      </div>
+
       <p class="key-security-note"><span>&#128274;</span> Stored only on your device &mdash; never sent to our servers.</p>
 
       <!-- Persona activations -->
