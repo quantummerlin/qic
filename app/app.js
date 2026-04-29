@@ -781,8 +781,14 @@
     const text = prompt("Describe your intention (as if it's already real):", title.trim());
     if (!text || !text.trim()) return;
 
+    // Reformulate as identity statement
+    const reformulated = await reformulateAsIdentity(text.trim());
+    const finalText = reformulated !== text.trim()
+      ? (confirm(`The council suggests framing this as:\n\n"${reformulated}"\n\nUse this wording?`) ? reformulated : text.trim())
+      : text.trim();
+
     saveCurrentChat();
-    const entry = Memory.createLibraryIntention(title.trim(), text.trim());
+    const entry = Memory.createLibraryIntention(title.trim(), finalText);
     activeIntentionId = entry.id;
     activeVaultIntentionId = null;
     chatHistory = [];
@@ -792,7 +798,7 @@
     showWelcome();
 
     // Full council celebrates new intention creation
-    const celebrateMsg = `A new intention has been created: "${text.trim()}". Welcome this intention into existence with genuine enthusiasm and your unique perspective.`;
+    const celebrateMsg = `A new intention has been created: "${finalText}". Welcome this intention into existence with genuine enthusiasm and your unique perspective.`;
     runCouncilRound(celebrateMsg);
   }
 
@@ -861,15 +867,22 @@
     }
   }
 
-  function completeWelcomeFlow(intentionText) {
+  async function completeWelcomeFlow(intentionText) {
     if (intentionText) {
+      // Reformulate as identity-based statement
+      const reformulated = await reformulateAsIdentity(intentionText);
+      const finalText = reformulated !== intentionText
+        ? (confirm(`The council suggests framing this as:\n\n"${reformulated}"\n\nUse this wording?`) ? reformulated : intentionText)
+        : intentionText;
+
       const entry = Memory.createLibraryIntention(
-        intentionText.substring(0, 60),
-        intentionText
+        finalText.substring(0, 60),
+        finalText
       );
       activeIntentionId = entry.id;
       chatHistory = [];
       updateIntentionDisplay();
+      intentionText = finalText;
     }
     const overlay = document.getElementById("welcome-flow-overlay");
     if (overlay) overlay.classList.remove("active");
@@ -1216,6 +1229,41 @@
   }
 
   // ----------------------------------------------------------
+  // IDENTITY REFORMULATION
+  // Rewrites a raw intention as a present-tense, identity-based statement
+  // via a lightweight Architect call before locking in
+  // ----------------------------------------------------------
+  async function reformulateAsIdentity(rawText) {
+    const architect = PERSONAS.find(p => p.isArchitect);
+    if (!architect) return rawText;
+
+    const prompt = `The user wants to set this intention: "${rawText}"
+
+Rewrite it as a single, present-tense, identity-rooted statement — the kind James Clear describes as "I am the type of person who..." framing, but adapted to be natural and specific to what they actually want.
+
+Rules:
+- Present tense, first person ("I am", "I have", "I live", "I create" etc.)
+- States identity, not outcome ("I am someone who..." not "I will achieve...")
+- Specific enough to feel personal, not generic
+- No more than 2 sentences
+- Emotionally loaded — it should feel slightly too true when you first read it
+- Do NOT add explanation, preamble, or quotes around it. Just the statement.`;
+
+    try {
+      const result = await callPersona(
+        architect,
+        [{ role: "user", content: prompt }],
+        { max_tokens: 120, temperature: 0.7 }
+      );
+      // Sanity check: must be a reasonably short statement
+      if (result && result.length > 20 && result.length < 400 && !result.startsWith("[")) {
+        return result.trim();
+      }
+    } catch (e) {}
+    return rawText; // fallback to original if anything fails
+  }
+
+  // ----------------------------------------------------------
   // INTENTION
   // ----------------------------------------------------------
   function updateIntentionDisplay() {
@@ -1237,7 +1285,7 @@
     el.textContent = intention.text || "(No intention set — tap Edit to set one)";
   }
 
-  function openIntentionEdit() {
+  async function openIntentionEdit() {
     // Edit the active library intention, or fall back to legacy
     if (activeIntentionId) {
       const lib = Memory.loadIntentionsLibrary();
@@ -1245,15 +1293,23 @@
       const current = entry ? entry.text : "";
       const newText = prompt("Set your intention (this is already real):", current);
       if (newText !== null && newText.trim()) {
-        Memory.updateLibraryIntention(activeIntentionId, { text: newText.trim(), title: newText.trim().substring(0, 60) });
-        Memory.saveIntention(newText.trim()); // keep legacy in sync
+        const reformulated = await reformulateAsIdentity(newText.trim());
+        const finalText = reformulated !== newText.trim()
+          ? (confirm(`The council suggests:\n\n"${reformulated}"\n\nUse this wording?`) ? reformulated : newText.trim())
+          : newText.trim();
+        Memory.updateLibraryIntention(activeIntentionId, { text: finalText, title: finalText.substring(0, 60) });
+        Memory.saveIntention(finalText); // keep legacy in sync
         updateIntentionDisplay();
       }
     } else {
       const intention = Memory.loadIntention();
       const newText = prompt("Set your intention (this is already real):", intention.text || "");
       if (newText !== null && newText.trim()) {
-        Memory.saveIntention(newText.trim());
+        const reformulated = await reformulateAsIdentity(newText.trim());
+        const finalText = reformulated !== newText.trim()
+          ? (confirm(`The council suggests:\n\n"${reformulated}"\n\nUse this wording?`) ? reformulated : newText.trim())
+          : newText.trim();
+        Memory.saveIntention(finalText);
         updateIntentionDisplay();
       }
     }
